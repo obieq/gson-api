@@ -1,6 +1,8 @@
 package gsonapi
 
 import (
+	"encoding/json"
+
 	gas "github.com/obieq/gas"
 	validations "github.com/obieq/goar-validations"
 )
@@ -84,4 +86,13 @@ func (r *Resource) Errors() []JsonApiError {
 
 func (r *Resource) SetErrors(errors map[string]*validations.ValidationError) {
 	r.errors = errors
+}
+
+func UnmarshalJsonApiData(source interface{}, destination interface{}) error {
+	var err error
+
+	if tmp, err := json.Marshal(source); err == nil {
+		err = json.Unmarshal(tmp, &destination)
+	}
+	return err
 }
