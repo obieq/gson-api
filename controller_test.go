@@ -3,7 +3,6 @@ package gsonapi
 import (
 	"bytes"
 	"encoding/json"
-	"log"
 	"net/http"
 	"net/http/httptest"
 
@@ -37,13 +36,30 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render) {
 	HandlePostResponse(success, err, &resource, r)
 }
 
+func MarshalAutomobileResource(auto AutomobileResource) []byte {
+	// Set up a new POST request before every test
+	auto.Attributes = AutomobileResourceAttributes{Year: 2010, Make: "Acura"}
+
+	j := JsonApiResource{Data: auto}
+
+	body, err := json.Marshal(j)
+	Ω(err).NotTo(HaveOccurred())
+
+	return body
+}
+
 var _ = Describe("Controller", func() {
 	var (
+		server   *martini.ClassicMartini
 		request  *http.Request
 		recorder *httptest.ResponseRecorder
 	)
 
 	BeforeEach(func() {
+		// Configure Martini
+		server = martini.Classic()
+		server.Use(render.Renderer())
+
 		// Record HTTP responses
 		recorder = httptest.NewRecorder()
 	})
@@ -66,32 +82,25 @@ var _ = Describe("Controller", func() {
 	//})
 
 	Context("HTTP POST", func() {
+		var (
+			auto1 *AutomobileResource = &AutomobileResource{}
+		)
+
 		BeforeEach(func() {
-			// Set up a new POST request before every test
-			auto := AutomobileResource{}
-			auto.Attributes = AutomobileResourceAttributes{Year: 2010, Make: "Acura"}
-
-			j := JsonApiResource{Data: auto}
-
-			body, err := json.Marshal(j)
-			if err != nil {
-				log.Println("Unable to marshal automobile resource")
-			}
-
-			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
-
-			// configure and run martini
-			m := martini.Classic()
-			m.Use(render.Renderer())
-
-			m.Group("/v1", func(r martini.Router) {
+			server.Group("/v1", func(r martini.Router) {
 				r.Post("/automobiles", binding.Json(JsonApiResource{}), HandleCreateAutomobile)
 			})
-
-			m.ServeHTTP(recorder, request)
 		})
 
 		It("should return a 201 Status Code", func() {
+			// prepare request
+			body := MarshalAutomobileResource(*auto1)
+			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
 			Ω(recorder.Code).Should(Equal(201))
 			responseBody :=
 				`{` +
