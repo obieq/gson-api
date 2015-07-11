@@ -1,4 +1,4 @@
-package gson_api
+package gsonapi
 
 import (
 	"reflect"

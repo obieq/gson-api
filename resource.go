@@ -1,14 +1,9 @@
-package gson_api
+package gsonapi
 
 import (
-	"strings"
-	"time"
-
 	gas "github.com/obieq/gas"
 	validations "github.com/obieq/goar-validations"
 )
-
-const API_PATH string = "http://192.168.1.8:4000/api/v1"
 
 type JsonApiResourcer interface {
 	Resourcer
@@ -16,11 +11,24 @@ type JsonApiResourcer interface {
 	SelfLink() string
 }
 
+type JsonApiResource struct {
+	Data   interface{}
+	Errors []JsonApiError `json:"errors,omitempty"`
+	Meta   interface{}    `json:"meta,omitempty"`
+}
+
 type Resourcer interface {
-	MapToModel(model interface{})
+	MapToModel(model interface{}) error
 	MapFromModel(model interface{})
-	Errors() map[string]string
+	Errors() []JsonApiError
 	SetErrors(map[string]*validations.ValidationError)
+}
+
+type Resource struct {
+	ResourceType string      `json:"type,omitempty"`
+	ID           string      `json:"id,omitempty"`
+	Attributes   interface{} `json:"attributes,omitempty"`
+	errors       map[string]*validations.ValidationError
 }
 
 type Link struct {
@@ -41,20 +49,34 @@ type Linkage struct {
 	ID   string `json:"id"`
 }
 
-type Resource struct {
-	ResourceType string     `json:"type,omitempty"`
-	ID           string     `json:"id,omitempty"`
-	CreatedAt    *time.Time `json:"created-at,omitempty"`
-	UpdatedAt    *time.Time `json:"updated-at,omitempty"`
-	errors       map[string]*validations.ValidationError
+type JsonApiErrorLink struct {
+	About string `json:"about,omitempty"`
 }
 
-func (r *Resource) Errors() map[string]string {
-	errors := make(map[string]string)
+type JsonApiErrorSource struct {
+	Pointer   string `json:"pointer,omitempty"`
+	Parameter string `json:"parameter,omitempty"`
+}
+
+type JsonApiError struct {
+	ID     string              `json:"id,omitempty"`
+	Status string              `json:"status,omitempty"`
+	Code   string              `json:"code,omitempty"`
+	Title  string              `json:"title,omitempty"`
+	Detail string              `json:"detail,omitempty"`
+	Links  *JsonApiErrorLink   `json:"linkz,omitempty"`
+	Source *JsonApiErrorSource `json:"source,omitempty"`
+}
+
+func (r *Resource) Errors() []JsonApiError {
+	errors := []JsonApiError{}
+	var err JsonApiError
 
 	for k, v := range r.errors {
 		key := gas.String(k).Dasherize()
-		errors[key] = strings.ToLower(v.Message)
+		err = JsonApiError{Detail: v.Message, Status: "422"}
+		err.Source = &JsonApiErrorSource{Pointer: "data/attributes/" + key}
+		errors = append(errors, err)
 	}
 
 	return errors
