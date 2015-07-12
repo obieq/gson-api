@@ -29,12 +29,17 @@ var _ = Describe("Resource", func() {
 
 		It("should get errors", func() {
 			r := AutomobileResource{}
-			Ω(len(r.Errors())).Should(Equal(0))
+			Ω(r.Errors()).Should(HaveLen(0))
 
 			r.SetErrors(*errors)
 
 			// verify
-			Ω(len(r.Errors())).Should(Equal(2))
+			Ω(r.Errors()).Should(HaveLen(2))
+
+			for _, e := range r.Errors() {
+				Ω(e.Status).Should(Equal("422"))
+				Ω([]string{"data/attributes/year", "data/attributes/make"}).Should(ContainElement(e.Source.Pointer))
+			}
 		})
 	})
 })
