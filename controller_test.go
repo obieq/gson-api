@@ -162,10 +162,16 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(422))
-			responseBody := `{` +
+
+			// NOTE: cannot perform deep equal on errors array, so have to take an alternate approach
+			responseBody1 := `{` +
 				`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
 				`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
-			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
+			responseBody2 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}},` +
+				`{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}}]}`
+
+			Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
 		})
 	}) // Context "HTTP POST"
 })

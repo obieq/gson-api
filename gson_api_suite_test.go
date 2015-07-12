@@ -8,6 +8,11 @@ import (
 	"testing"
 )
 
+func TestGsonApi(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "GsonApi Suite")
+}
+
 // ******************* BEGIN MARTINI SERVER SECTION ******************* //
 // Wrap the Martini server struct.
 //type Server *martini.ClassicMartini
@@ -88,7 +93,8 @@ func (r *AutomobileResource) MapToModel(model interface{}) error {
 }
 
 // ******************* END RESOURCE SECTION *************************** //
-// ******************* END RESOURCE SECTION *************************** //
+
+// ******************* BEGIN TEST HELPERS SECTION ********************* //
 func BuildErrors() map[string]*validations.ValidationError {
 	errors := map[string]*validations.ValidationError{}
 	veYear := validations.ValidationError{Key: "year", Message: "cannot be greater than 2016"}
@@ -98,9 +104,4 @@ func BuildErrors() map[string]*validations.ValidationError {
 	return errors
 }
 
-// ******************* END RESOURCE SECTION *************************** //
-
-func TestGsonApi(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "GsonApi Suite")
-}
+// ******************* END TEST HELPERS SECTION *********************** //
