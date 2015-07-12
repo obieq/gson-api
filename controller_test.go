@@ -42,9 +42,10 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bo
 
 		//success = err == nil
 		HandlePostResponse(true, err, &resource, r)
-	} else if err != nil {
+	} else if err != nil && err.Error() != "" {
 		HandlePostResponse(false, err, &resource, r)
-	} else { // success = false
+	} else { // success = false, i.e., business rule validation errors
+		resource.SetErrors(BuildErrors())
 		HandlePostResponse(success, nil, &resource, r)
 	}
 }
@@ -128,7 +129,7 @@ var _ = Describe("Controller", func() {
 					`"data":{"type":"automobiles","id":"` + AUTOMOBILE_ID + `",` +
 					`"attributes":{"year":2010,"make":"Acura"},` +
 					`"links":{"self":"https://carz.com/v1/automobiles/` + AUTOMOBILE_ID + `"}}}`
-			Ω(recorder.Body.String()).Should(Equal(responseBody))
+			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
 		})
 
 		It("should return a 400 Status Code", func() {
@@ -146,6 +147,25 @@ var _ = Describe("Controller", func() {
 			Ω(recorder.Code).Should(Equal(400))
 			responseBody := `{"errors":{}}`
 			Ω(recorder.Body.String()).Should(Equal(responseBody))
+		})
+
+		It("should return a 422 Status Code", func() {
+			MapHandleCreateAutomobileParams(server, false, errors.New(""))
+			BuildPostRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(*auto1)
+			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(422))
+			responseBody := `{` +
+				`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
+				`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
+			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
 		})
 	}) // Context "HTTP POST"
 })

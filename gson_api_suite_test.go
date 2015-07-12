@@ -88,6 +88,17 @@ func (r *AutomobileResource) MapToModel(model interface{}) error {
 }
 
 // ******************* END RESOURCE SECTION *************************** //
+// ******************* END RESOURCE SECTION *************************** //
+func BuildErrors() map[string]*validations.ValidationError {
+	errors := map[string]*validations.ValidationError{}
+	veYear := validations.ValidationError{Key: "year", Message: "cannot be greater than 2016"}
+	veMake := validations.ValidationError{Key: "make", Message: "cannot be blank"}
+	errors[veYear.Key] = &veYear
+	errors[veMake.Key] = &veMake
+	return errors
+}
+
+// ******************* END RESOURCE SECTION *************************** //
 
 func TestGsonApi(t *testing.T) {
 	RegisterFailHandler(Fail)

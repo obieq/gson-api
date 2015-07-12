@@ -12,13 +12,8 @@ var _ = Describe("Resource", func() {
 	)
 
 	BeforeEach(func() {
-		errorList := map[string]*validations.ValidationError{}
-		veYear := validations.ValidationError{Key: "year", Message: "cannot be greater than 2016"}
-		veMake := validations.ValidationError{Key: "make", Message: "cannot be blank"}
-		errorList[veYear.Key] = &veYear
-		errorList[veMake.Key] = &veMake
-
-		errors = &errorList
+		tmp := BuildErrors()
+		errors = &tmp
 	})
 
 	Context("Errors", func() {
