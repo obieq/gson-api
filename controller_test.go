@@ -10,15 +10,45 @@ import (
 	"github.com/go-martini/martini"
 	"github.com/martini-contrib/binding"
 	"github.com/martini-contrib/render"
+	"github.com/modocache/gory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var AUTOMOBILE_ID string = "aaaa-bbbb-cccc-dddd"
 
-func MapHandleCreateAutomobileParams(server *martini.ClassicMartini, success bool, err error) {
-	server.Map(success)
+func MapErrorParam(server *martini.ClassicMartini, err error) {
 	server.Map(err)
+}
+
+func MapSuccessParam(server *martini.ClassicMartini, success bool) {
+	server.Map(success)
+}
+
+func HandleGetAutomobiles(r render.Render, err error) {
+	// set err to nil if it's an empty string
+	// otherwise, the response code will always be 404
+	if err.Error() == "" {
+		err = nil
+	}
+	automobiles := make([]AutomobileResource, 2)
+	automobiles[0] = *gory.Build("automobileResource1").(*AutomobileResource)
+	automobiles[1] = *gory.Build("automobileResource2").(*AutomobileResource)
+
+	// build links
+	automobiles[0].BuildLinks()
+	automobiles[1].BuildLinks()
+
+	// map the  to resources
+	// if err == nil {
+	// 	automobiles = make([]resources.Automobile, len(dbModels))
+	// 	for i, m := range dbModels {
+	// 		automobile := resources.Automobile{}
+	// 		automobile.MapFromModel(m)
+	// 		automobiles[i] = automobile
+	// 	}
+	// }
+	HandleIndexResponse(err, Link{Self: "https://carz.com/v1/automobiles"}, automobiles, r)
 }
 
 func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bool, err error) {
@@ -62,6 +92,12 @@ func MarshalAutomobileResource(auto AutomobileResource) []byte {
 	return body
 }
 
+func BuildGetListRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Get("/automobiles", HandleGetAutomobiles)
+	})
+}
+
 func BuildPostRoute(server *martini.ClassicMartini) {
 	server.Group("/v1", func(r martini.Router) {
 		r.Post("/automobiles", binding.Json(JsonApiResource{}), HandleCreateAutomobile)
@@ -84,35 +120,61 @@ var _ = Describe("Controller", func() {
 		recorder = httptest.NewRecorder()
 	})
 
-	//It("should unmarshal a resource to a model", func() {
-	//var m AutomobileModel
-	//r := automobileResource1
-	//j, err := json.Marshal(r)
-	//Ω(err).NotTo(HaveOccurred())
+	Context("HTTP GET (List)", func() {
+		BeforeEach(func() {
+			server.Group("/v1", func(r martini.Router) {
+				r.Get("/automobiles", HandleGetAutomobiles)
+			})
+		})
 
-	//log.Println(r)
-	//err = UnmarshalJsonApiData(j, &m)
-	//Ω(err).NotTo(HaveOccurred())
-	//Ω(m).ShouldNot(BeNil())
-	//log.Println(r)
-	//log.Println(m.Year)
-	//log.Println(m.Make)
-	//Ω(m.Year).Should(Equal(r.Attributes.(AutomobileResourceAttributes).Year))
-	//Ω(m.Make).Should(Equal(r.Attributes.(AutomobileResourceAttributes).Make))
-	//})
+		It("should return a 200 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			BuildGetListRoute(server)
+
+			request, _ = http.NewRequest("GET", "/v1/automobiles", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(200))
+			expectedResponse := `{` +
+				`"data":[{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda"},` +
+				`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}},` +
+				`{"type":"automobiles","id":"cccc-3333-dddd-4444","attributes":{"year":1960,"make":"Austin-Healey"},` +
+				`"links":{"self":"https://carz.com/v1/automobiles/cccc-3333-dddd-4444"}}],` +
+				`"links":{"self":"https://carz.com/v1/automobiles"}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+		It("should return a 404 Status Code", func() {
+			MapErrorParam(server, errors.New("not found"))
+			BuildGetListRoute(server)
+
+			request, _ = http.NewRequest("GET", "/v1/automobiles", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(404))
+			expectedResponse := `{"errors":{}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+	})
+
+	Context("HTTP GET (Single)", func() {
+	})
 
 	Context("HTTP POST", func() {
 		var (
 			auto1 *AutomobileResource = &AutomobileResource{}
 		)
 
-		BeforeEach(func() {
-			//success := true
-			//server.Map(success)
-		})
-
 		It("should return a 201 Status Code", func() {
-			MapHandleCreateAutomobileParams(server, true, errors.New(""))
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, true)
 			BuildPostRoute(server)
 
 			// prepare request
@@ -133,7 +195,8 @@ var _ = Describe("Controller", func() {
 		})
 
 		It("should return a 400 Status Code", func() {
-			MapHandleCreateAutomobileParams(server, false, errors.New("oops"))
+			MapErrorParam(server, errors.New("oops"))
+			MapSuccessParam(server, false)
 			BuildPostRoute(server)
 
 			// prepare request
@@ -150,7 +213,8 @@ var _ = Describe("Controller", func() {
 		})
 
 		It("should return a 422 Status Code", func() {
-			MapHandleCreateAutomobileParams(server, false, errors.New(""))
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, false)
 			BuildPostRoute(server)
 
 			// prepare request

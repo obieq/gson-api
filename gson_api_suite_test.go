@@ -1,6 +1,7 @@
 package gsonapi
 
 import (
+	gory "github.com/modocache/gory"
 	validations "github.com/obieq/goar-validations"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -50,31 +51,31 @@ type AutomobileResourceAttributes struct {
 }
 
 // BuildLinks => builds JSON API links
-func (p *AutomobileResource) BuildLinks(automobileModel interface{}) {
-	root := "https://carz.com" + "/v1/" + AUTOMOBILE_RESOURCE_TYPE + "/" + p.ID
-	p.Links = &AutomobileLinks{Link: Link{Self: root}}
+func (r *AutomobileResource) BuildLinks() {
+	root := "https://carz.com" + "/v1/" + AUTOMOBILE_RESOURCE_TYPE + "/" + r.ID
+	r.Links = &AutomobileLinks{Link: Link{Self: root}}
 }
 
-func (p *AutomobileResource) SelfLink() string {
-	return p.Links.Self
+func (r *AutomobileResource) SelfLink() string {
+	return r.Links.Self
 }
 
-func (p *AutomobileResource) MapFromModel(model interface{}) {
+func (r *AutomobileResource) MapFromModel(model interface{}) {
 	m := model.(AutomobileModel)
 	attrs := AutomobileResourceAttributes{}
 
 	if !m.HasErrors() {
-		p.ResourceType = AUTOMOBILE_RESOURCE_TYPE
-		p.ID = m.ID
+		r.ResourceType = AUTOMOBILE_RESOURCE_TYPE
+		r.ID = m.ID
 		attrs.Year = m.Year
 		attrs.Make = m.Make
 		attrs.Active = m.Active
-		p.Attributes = attrs
+		r.Attributes = attrs
 
 		// build links
-		p.BuildLinks(m)
+		r.BuildLinks()
 	} else {
-		p.SetErrors(m.ErrorMap())
+		r.SetErrors(m.ErrorMap())
 	}
 }
 
@@ -105,3 +106,24 @@ func BuildErrors() map[string]*validations.ValidationError {
 }
 
 // ******************* END TEST HELPERS SECTION *********************** //
+
+// ******************* BEGIN TEST FACTORIES SECTION ******************* //
+var _ = BeforeSuite(func() {
+	gory.Define("automobileResource1", AutomobileResource{}, func(factory gory.Factory) {
+		factory["ID"] = "aaaa-1111-bbbb-2222"
+		factory["ResourceType"] = "automobiles"
+
+		attrs := AutomobileResourceAttributes{Year: 2010, Make: "Mazda"}
+		factory["Attributes"] = attrs
+	})
+
+	gory.Define("automobileResource2", AutomobileResource{}, func(factory gory.Factory) {
+		factory["ID"] = "cccc-3333-dddd-4444"
+		factory["ResourceType"] = "automobiles"
+
+		attrs := AutomobileResourceAttributes{Year: 1960, Make: "Austin-Healey"}
+		factory["Attributes"] = attrs
+	})
+})
+
+// ******************* END TEST FACTORIES SECTION ********************* //

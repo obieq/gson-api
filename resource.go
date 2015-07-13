@@ -9,7 +9,7 @@ import (
 
 type JsonApiResourcer interface {
 	Resourcer
-	BuildLinks(model interface{})
+	BuildLinks()
 	SelfLink() string
 }
 
