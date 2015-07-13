@@ -94,6 +94,17 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bo
 	}
 }
 
+func HandleDeleteAutomobile(r render.Render, err error) {
+	// set err to nil if it's an empty string
+	// otherwise, the response code will always be 404
+	if err.Error() == "" {
+		err = nil
+	}
+
+	// TODO: refactor the HandleDeleteResponse method
+	// HandleDeleteResponse(nil, r)
+}
+
 func MarshalAutomobileResource(auto AutomobileResource) []byte {
 	// Set up a new POST request before every test
 	auto.Attributes = AutomobileResourceAttributes{Year: 2010, Make: "Acura"}
@@ -112,9 +123,20 @@ func BuildGetListRoute(server *martini.ClassicMartini) {
 	})
 }
 
+func BuildGetSingleRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Get("/automobiles/:id", HandleGetAutomobile)
+	})
+}
+
 func BuildPostRoute(server *martini.ClassicMartini) {
 	server.Group("/v1", func(r martini.Router) {
 		r.Post("/automobiles", binding.Json(JsonApiResource{}), HandleCreateAutomobile)
+	})
+}
+func BuildDeleteRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Delete("/automobiles/:id", HandleDeleteAutomobile)
 	})
 }
 
@@ -179,15 +201,9 @@ var _ = Describe("Controller", func() {
 	})
 
 	Context("HTTP GET (Single)", func() {
-		BeforeEach(func() {
-			server.Group("/v1", func(r martini.Router) {
-				r.Get("/automobiles/:id", HandleGetAutomobile)
-			})
-		})
-
 		It("should return a 200 Status Code", func() {
 			MapErrorParam(server, errors.New(""))
-			BuildGetListRoute(server)
+			BuildGetSingleRoute(server)
 
 			request, _ = http.NewRequest("GET", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
 
@@ -204,7 +220,7 @@ var _ = Describe("Controller", func() {
 
 		It("should return a 404 Status Code", func() {
 			MapErrorParam(server, errors.New("not found"))
-			BuildGetListRoute(server)
+			BuildGetSingleRoute(server)
 
 			request, _ = http.NewRequest("GET", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
 
@@ -289,4 +305,38 @@ var _ = Describe("Controller", func() {
 			Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
 		})
 	}) // Context "HTTP POST"
+
+	// Context("HTTP DELETE", func() {
+	// 	It("should return a 204 Status Code", func() {
+	// 		MapErrorParam(server, errors.New(""))
+	// 		BuildDeleteRoute(server)
+	//
+	// 		request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+	//
+	// 		// send request to server
+	// 		server.ServeHTTP(recorder, request)
+	//
+	// 		// verify
+	// 		Ω(recorder.Code).Should(Equal(204))
+	// 		expectedResponse := `{` +
+	// 			`"data":{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda"},` +
+	// 			`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}}}`
+	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+	// 	})
+	//
+	// 	It("should return a 404 Status Code", func() {
+	// 		MapErrorParam(server, errors.New("not found"))
+	// 		BuildDeleteRoute(server)
+	//
+	// 		request, _ = http.NewRequest("GET", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+	//
+	// 		// send request to server
+	// 		server.ServeHTTP(recorder, request)
+	//
+	// 		// verify
+	// 		Ω(recorder.Code).Should(Equal(404))
+	// 		expectedResponse := `{"errors":{}}`
+	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+	// 	})
+	// }) // Context "HTTP DELETE"
 })
