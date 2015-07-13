@@ -51,6 +51,20 @@ func HandleGetAutomobiles(r render.Render, err error) {
 	HandleIndexResponse(err, Link{Self: "https://carz.com/v1/automobiles"}, automobiles, r)
 }
 
+func HandleGetAutomobile(r render.Render, err error) {
+	// set err to nil if it's an empty string
+	// otherwise, the response code will always be 404
+	if err.Error() == "" {
+		err = nil
+	}
+	auto := *gory.Build("automobileResource1").(*AutomobileResource)
+
+	// build links
+	auto.BuildLinks()
+
+	HandleGetResponse(err, auto, r)
+}
+
 func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bool, err error) {
 	var resource AutomobileResource
 
@@ -165,6 +179,43 @@ var _ = Describe("Controller", func() {
 	})
 
 	Context("HTTP GET (Single)", func() {
+		BeforeEach(func() {
+			server.Group("/v1", func(r martini.Router) {
+				r.Get("/automobiles/:id", HandleGetAutomobile)
+			})
+		})
+
+		It("should return a 200 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			BuildGetListRoute(server)
+
+			request, _ = http.NewRequest("GET", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(200))
+			expectedResponse := `{` +
+				`"data":{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda"},` +
+				`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+		It("should return a 404 Status Code", func() {
+			MapErrorParam(server, errors.New("not found"))
+			BuildGetListRoute(server)
+
+			request, _ = http.NewRequest("GET", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(404))
+			expectedResponse := `{"errors":{}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
 	})
 
 	Context("HTTP POST", func() {
