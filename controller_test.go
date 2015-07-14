@@ -27,10 +27,12 @@ func MapSuccessParam(server *martini.ClassicMartini, success bool) {
 }
 
 func HandleGetAutomobiles(r render.Render, err error) {
+	var jsonApiError *JsonApiError
+
 	// set err to nil if it's an empty string
 	// otherwise, the response code will always be 404
-	if err.Error() == "" {
-		err = nil
+	if err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
 	}
 	automobiles := make([]AutomobileResource, 2)
 	automobiles[0] = *gory.Build("automobileResource1").(*AutomobileResource)
@@ -49,25 +51,28 @@ func HandleGetAutomobiles(r render.Render, err error) {
 	// 		automobiles[i] = automobile
 	// 	}
 	// }
-	HandleIndexResponse(err, Link{Self: "https://carz.com/v1/automobiles"}, automobiles, r)
+	HandleIndexResponse(jsonApiError, Link{Self: "https://carz.com/v1/automobiles"}, automobiles, r)
 }
 
 func HandleGetAutomobile(r render.Render, err error) {
+	var jsonApiError *JsonApiError
+
 	// set err to nil if it's an empty string
 	// otherwise, the response code will always be 404
-	if err.Error() == "" {
-		err = nil
+	if err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
 	}
 	auto := *gory.Build("automobileResource1").(*AutomobileResource)
 
 	// build links
 	auto.BuildLinks()
 
-	HandleGetResponse(err, auto, r)
+	HandleGetResponse(jsonApiError, auto, r)
 }
 
 func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bool, err error) {
 	var resource AutomobileResource
+	var jsonApiError *JsonApiError
 
 	if success {
 		err = nil
@@ -85,13 +90,13 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bo
 			resource.MapFromModel(m)
 		}
 
-		//success = err == nil
-		HandlePostResponse(true, err, &resource, r)
+		HandlePostResponse(true, jsonApiError, &resource, r)
 	} else if err != nil && err.Error() != "" {
-		HandlePostResponse(false, err, &resource, r)
+		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
+		HandlePostResponse(false, jsonApiError, &resource, r)
 	} else { // success = false, i.e., business rule validation errors
 		resource.SetErrors(BuildErrors())
-		HandlePostResponse(success, nil, &resource, r)
+		HandlePostResponse(success, jsonApiError, &resource, r)
 	}
 }
 
@@ -103,7 +108,7 @@ func HandleDeleteAutomobile(r render.Render, err error) {
 	// 	err = nil
 	// }
 	if err.Error() != "" {
-		jsonApiError = &JsonApiError{Status: "400", Detail: "oops"}
+		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
 	}
 
 	HandleDeleteResponse(jsonApiError, r)
@@ -198,7 +203,7 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(404))
-			expectedResponse := `{"errors":{}}`
+			expectedResponse := `{"errors":{"status":"404","detail":"not found"}}`
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
 
@@ -233,7 +238,7 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(404))
-			expectedResponse := `{"errors":{}}`
+			expectedResponse := `{"errors":{"status":"404","detail":"not found"}}`
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
 	})
@@ -279,7 +284,7 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(400))
-			responseBody := `{"errors":{}}`
+			responseBody := `{"errors":{"status":"400","detail":"oops"}}`
 			Ω(recorder.Body.String()).Should(Equal(responseBody))
 		})
 
@@ -326,8 +331,8 @@ var _ = Describe("Controller", func() {
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
 
-		It("should return a 404 Status Code", func() {
-			MapErrorParam(server, errors.New("not found"))
+		It("should return a 400 Status Code", func() {
+			MapErrorParam(server, errors.New("oops"))
 			BuildDeleteRoute(server)
 
 			request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
