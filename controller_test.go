@@ -29,11 +29,10 @@ func MapSuccessParam(server *martini.ClassicMartini, success bool) {
 func HandleGetAutomobiles(r render.Render, err error) {
 	var jsonApiError *JsonApiError
 
-	// set err to nil if it's an empty string
-	// otherwise, the response code will always be 404
 	if err.Error() != "" {
 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
 	}
+
 	automobiles := make([]AutomobileResource, 2)
 	automobiles[0] = *gory.Build("automobileResource1").(*AutomobileResource)
 	automobiles[1] = *gory.Build("automobileResource2").(*AutomobileResource)
@@ -42,26 +41,16 @@ func HandleGetAutomobiles(r render.Render, err error) {
 	automobiles[0].BuildLinks()
 	automobiles[1].BuildLinks()
 
-	// map the  to resources
-	// if err == nil {
-	// 	automobiles = make([]resources.Automobile, len(dbModels))
-	// 	for i, m := range dbModels {
-	// 		automobile := resources.Automobile{}
-	// 		automobile.MapFromModel(m)
-	// 		automobiles[i] = automobile
-	// 	}
-	// }
 	HandleIndexResponse(jsonApiError, Link{Self: "https://carz.com/v1/automobiles"}, automobiles, r)
 }
 
 func HandleGetAutomobile(r render.Render, err error) {
 	var jsonApiError *JsonApiError
 
-	// set err to nil if it's an empty string
-	// otherwise, the response code will always be 404
 	if err.Error() != "" {
 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
 	}
+
 	auto := *gory.Build("automobileResource1").(*AutomobileResource)
 
 	// build links
@@ -75,38 +64,27 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bo
 	var jsonApiError *JsonApiError
 
 	if success {
-		err = nil
 		// map the resource to the model
 		m := AutomobileModel{}
-		err = UnmarshalJsonApiData(request.Data, &resource)
+		UnmarshalJsonApiData(request.Data, &resource)
 		resource.MapToModel(&m)
 
 		// map the model to the resource
-		if err == nil {
-			// given that this is a create request, generate an id
-			m.ID = AUTOMOBILE_ID
-
-			resource = AutomobileResource{}
-			resource.MapFromModel(m)
-		}
-
-		HandlePostResponse(true, jsonApiError, &resource, r)
+		m.ID = AUTOMOBILE_ID // given that this is a create request, generate an id
+		resource = AutomobileResource{}
+		resource.MapFromModel(m)
 	} else if err != nil && err.Error() != "" {
 		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
-		HandlePostResponse(false, jsonApiError, &resource, r)
 	} else { // success = false, i.e., business rule validation errors
 		resource.SetErrors(BuildErrors())
-		HandlePostResponse(success, jsonApiError, &resource, r)
 	}
+
+	HandlePostResponse(success, jsonApiError, &resource, r)
 }
 
 func HandleDeleteAutomobile(r render.Render, err error) {
 	var jsonApiError *JsonApiError
-	// set err to nil if it's an empty string
-	// otherwise, the response code will always be 404
-	// if err.Error() == "" {
-	// 	err = nil
-	// }
+
 	if err.Error() != "" {
 		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
 	}
