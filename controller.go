@@ -1,9 +1,6 @@
 package gsonapi
 
-import (
-	"github.com/martini-contrib/render"
-	goar "github.com/obieq/goar"
-)
+import "github.com/martini-contrib/render"
 
 func HandleIndexResponse(resultError error, link Link, result interface{}, r render.Render) {
 	if resultError == nil {
@@ -51,12 +48,10 @@ func HandlePostResponse(success bool, resultError error, resource JsonApiResourc
 //}
 //}
 
-func HandleDeleteResponse(model goar.ActiveRecordInterfacer, r render.Render) {
-	goar.ToAR(model)
-
-	if err := model.Delete(); err != nil {
-		r.JSON(400, map[string]interface{}{"errors": err})
-	} else {
+func HandleDeleteResponse(err *JsonApiError, r render.Render) {
+	if err == nil {
 		r.JSON(204, map[string]interface{}{})
+	} else {
+		r.JSON(400, map[string]interface{}{"errors": err})
 	}
 }

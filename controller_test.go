@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"net/http/httptest"
 
@@ -15,7 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var AUTOMOBILE_ID string = "aaaa-bbbb-cccc-dddd"
+var AUTOMOBILE_ID = "aaaa-bbbb-cccc-dddd"
 
 func MapErrorParam(server *martini.ClassicMartini, err error) {
 	server.Map(err)
@@ -95,14 +96,17 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bo
 }
 
 func HandleDeleteAutomobile(r render.Render, err error) {
+	var jsonApiError *JsonApiError
 	// set err to nil if it's an empty string
 	// otherwise, the response code will always be 404
-	if err.Error() == "" {
-		err = nil
+	// if err.Error() == "" {
+	// 	err = nil
+	// }
+	if err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "400", Detail: "oops"}
 	}
 
-	// TODO: refactor the HandleDeleteResponse method
-	// HandleDeleteResponse(nil, r)
+	HandleDeleteResponse(jsonApiError, r)
 }
 
 func MarshalAutomobileResource(auto AutomobileResource) []byte {
@@ -306,37 +310,36 @@ var _ = Describe("Controller", func() {
 		})
 	}) // Context "HTTP POST"
 
-	// Context("HTTP DELETE", func() {
-	// 	It("should return a 204 Status Code", func() {
-	// 		MapErrorParam(server, errors.New(""))
-	// 		BuildDeleteRoute(server)
-	//
-	// 		request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(204))
-	// 		expectedResponse := `{` +
-	// 			`"data":{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda"},` +
-	// 			`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}}}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
-	// 	})
-	//
-	// 	It("should return a 404 Status Code", func() {
-	// 		MapErrorParam(server, errors.New("not found"))
-	// 		BuildDeleteRoute(server)
-	//
-	// 		request, _ = http.NewRequest("GET", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(404))
-	// 		expectedResponse := `{"errors":{}}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
-	// 	})
-	// }) // Context "HTTP DELETE"
+	Context("HTTP DELETE", func() {
+		It("should return a 204 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			BuildDeleteRoute(server)
+
+			request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(204))
+			expectedResponse := `{}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+		It("should return a 404 Status Code", func() {
+			MapErrorParam(server, errors.New("not found"))
+			BuildDeleteRoute(server)
+
+			request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(400))
+			log.Println(recorder.Body.String())
+			expectedResponse := `{"errors":{"status":"400","detail":"oops"}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+	}) // Context "HTTP DELETE"
 })
