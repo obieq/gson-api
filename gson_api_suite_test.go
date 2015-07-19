@@ -79,6 +79,7 @@ func (r *AutomobileResource) MapFromModel(model interface{}) {
 	if !m.HasErrors() {
 		r.ResourceType = AUTOMOBILE_RESOURCE_TYPE
 		r.ID = m.ID
+		r.URL = CARZ_URL
 		attrs.Year = m.Year
 		attrs.Make = m.Make
 		attrs.Active = m.Active
