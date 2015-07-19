@@ -17,7 +17,6 @@ import (
 )
 
 var AUTOMOBILE_ID = "aaaa-bbbb-cccc-dddd"
-var CARZ_URL = "https://carz.com/v1"
 
 func MapErrorParam(server *martini.ClassicMartini, err error) {
 	server.Map(err)
@@ -42,7 +41,6 @@ func HandleGetAutomobiles(r render.Render, err error) {
 	automobiles[0].BuildLinks()
 	automobiles[1].BuildLinks()
 
-	//resource := AutomobileResource{URL: CARZ_URL}
 	resource := AutomobileResource{}
 	HandleIndexResponse(jsonApiError, Link{Self: resource.LinkSelfCollection()}, automobiles, r)
 }

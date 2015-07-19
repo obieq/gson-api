@@ -55,9 +55,11 @@ func (r *AutomobileResource) BuildLinks() {
 	r.Links = &AutomobileLinks{Link: Link{Self: r.LinkSelfSingle()}}
 }
 
-func (r *AutomobileResource) URL() string {
-	return CARZ_URL
-}
+// NOTE: the code below is an example of how
+//       to customize the URL value on a per resource basis
+//func (r *AutomobileResource) URL() string {
+//return "https://overridden-url.com/v5/"
+//}
 
 func (r *AutomobileResource) URI() string {
 	return AUTOMOBILE_RESOURCE_TYPE
@@ -68,7 +70,7 @@ func (r *AutomobileResource) SelfLink() string {
 }
 
 func (r *AutomobileResource) LinkSelfCollection() string {
-	return r.URL() + "/" + r.URI()
+	return r.URL() + r.URI()
 }
 
 func (r *AutomobileResource) LinkSelfSingle() string {

@@ -74,9 +74,9 @@ type JsonApiError struct {
 }
 
 // TODO: Implement via .env
-//func (r *Resource) URL() string {
-//return "https://change-me.com/v2"
-//}
+func (r *Resource) URL() string {
+	return GsonApiConfig.URL
+}
 
 func (r *Resource) Errors() []JsonApiError {
 	errors := []JsonApiError{}
