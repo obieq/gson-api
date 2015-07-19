@@ -19,6 +19,7 @@ type JsonApiResource struct {
 }
 
 type Resourcer interface {
+	URL() string
 	URI() string
 	MapToModel(model interface{}) error
 	MapFromModel(model interface{})
@@ -33,7 +34,6 @@ type Resource struct {
 	ID           string      `json:"id,omitempty"`
 	Attributes   interface{} `json:"attributes,omitempty"`
 	errors       map[string]*validations.ValidationError
-	URL          string `json:"-"`
 }
 
 type Link struct {
@@ -72,6 +72,11 @@ type JsonApiError struct {
 	Links  *JsonApiErrorLink   `json:"linkz,omitempty"`
 	Source *JsonApiErrorSource `json:"source,omitempty"`
 }
+
+// TODO: Implement via .env
+//func (r *Resource) URL() string {
+//return "https://change-me.com/v2"
+//}
 
 func (r *Resource) Errors() []JsonApiError {
 	errors := []JsonApiError{}

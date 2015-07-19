@@ -38,17 +38,12 @@ func HandleGetAutomobiles(r render.Render, err error) {
 	automobiles[0] = *gory.Build("automobileResource1").(*AutomobileResource)
 	automobiles[1] = *gory.Build("automobileResource2").(*AutomobileResource)
 
-	// set url
-	automobiles[0].URL = CARZ_URL
-	automobiles[1].URL = CARZ_URL
-
 	// build links
 	automobiles[0].BuildLinks()
 	automobiles[1].BuildLinks()
 
 	//resource := AutomobileResource{URL: CARZ_URL}
 	resource := AutomobileResource{}
-	resource.URL = CARZ_URL
 	HandleIndexResponse(jsonApiError, Link{Self: resource.LinkSelfCollection()}, automobiles, r)
 }
 
@@ -60,9 +55,6 @@ func HandleGetAutomobile(r render.Render, err error) {
 	}
 
 	auto := *gory.Build("automobileResource1").(*AutomobileResource)
-
-	// set url
-	auto.URL = CARZ_URL
 
 	// build links
 	auto.BuildLinks()
