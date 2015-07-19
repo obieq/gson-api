@@ -22,7 +22,7 @@ func HandleGetResponse(err *JsonApiError, result interface{}, r render.Render) {
 func HandlePostResponse(success bool, err *JsonApiError, resource JsonApiResourcer, r render.Render) {
 	if success {
 		// TODO: retrieve from the database instead of re-using instance
-		r.Header().Set("Location", resource.SelfLink())
+		r.Header().Set("Location", resource.LinkSelfSingle())
 		r.JSON(201, map[string]interface{}{"data": resource})
 	} else if err != nil {
 		// TODO: how do I parse the status code?

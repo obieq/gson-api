@@ -10,7 +10,8 @@ import (
 type JsonApiResourcer interface {
 	Resourcer
 	BuildLinks()
-	SelfLink() string
+	LinkSelfCollection() string
+	LinkSelfSingle() string
 }
 
 type JsonApiResource struct {
@@ -20,6 +21,7 @@ type JsonApiResource struct {
 }
 
 type Resourcer interface {
+	URI() string
 	MapToModel(model interface{}) error
 	MapFromModel(model interface{})
 	Errors() []JsonApiError
@@ -27,9 +29,10 @@ type Resourcer interface {
 }
 
 type Resource struct {
-	ResourceType string      `json:"type,omitempty"`
-	ID           string      `json:"id,omitempty"`
 	Attributes   interface{} `json:"attributes,omitempty"`
+	URL          string      `json:"-"`
+	ID           string      `json:"id,omitempty"`
+	ResourceType string      `json:"type,omitempty"`
 	errors       map[string]*validations.ValidationError
 }
 

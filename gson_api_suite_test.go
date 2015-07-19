@@ -52,12 +52,23 @@ type AutomobileResourceAttributes struct {
 
 // BuildLinks => builds JSON API links
 func (r *AutomobileResource) BuildLinks() {
-	root := "https://carz.com" + "/v1/" + AUTOMOBILE_RESOURCE_TYPE + "/" + r.ID
-	r.Links = &AutomobileLinks{Link: Link{Self: root}}
+	r.Links = &AutomobileLinks{Link: Link{Self: r.LinkSelfSingle()}}
+}
+
+func (r *AutomobileResource) URI() string {
+	return AUTOMOBILE_RESOURCE_TYPE
 }
 
 func (r *AutomobileResource) SelfLink() string {
 	return r.Links.Self
+}
+
+func (r *AutomobileResource) LinkSelfCollection() string {
+	return r.URL + "/" + r.URI()
+}
+
+func (r *AutomobileResource) LinkSelfSingle() string {
+	return r.LinkSelfCollection() + "/" + r.ID
 }
 
 // MapFromModel => maps a model to a resource
