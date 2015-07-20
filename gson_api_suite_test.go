@@ -52,7 +52,7 @@ type AutomobileResourceAttributes struct {
 
 // BuildLinks => builds JSON API links
 func (r *AutomobileResource) BuildLinks() {
-	r.Links = &AutomobileLinks{Link: Link{Self: r.LinkSelfSingle()}}
+	r.Links = &AutomobileLinks{Link: Link{Self: LinkSelfInstance(r)}}
 }
 
 // NOTE: the code below is an example of how
@@ -67,14 +67,6 @@ func (r *AutomobileResource) URI() string {
 
 func (r *AutomobileResource) SelfLink() string {
 	return r.Links.Self
-}
-
-func (r *AutomobileResource) LinkSelfCollection() string {
-	return r.URL() + r.URI()
-}
-
-func (r *AutomobileResource) LinkSelfSingle() string {
-	return r.LinkSelfCollection() + "/" + r.ID
 }
 
 // MapFromModel => maps a model to a resource

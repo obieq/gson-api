@@ -41,8 +41,8 @@ func HandleGetAutomobiles(r render.Render, err error) {
 	automobiles[0].BuildLinks()
 	automobiles[1].BuildLinks()
 
-	resource := AutomobileResource{}
-	HandleIndexResponse(jsonApiError, Link{Self: resource.LinkSelfCollection()}, automobiles, r)
+	resource := &AutomobileResource{}
+	HandleIndexResponse(jsonApiError, Link{Self: LinkSelfCollection(resource)}, automobiles, r)
 }
 
 func HandleGetAutomobile(r render.Render, err error) {

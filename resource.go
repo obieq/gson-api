@@ -21,10 +21,9 @@ type JsonApiResource struct {
 type Resourcer interface {
 	URL() string
 	URI() string
+	GetID() string
 	MapToModel(model interface{}) error
 	MapFromModel(model interface{})
-	LinkSelfCollection() string
-	LinkSelfSingle() string
 	Errors() []JsonApiError
 	SetErrors(map[string]*validations.ValidationError)
 }
@@ -73,9 +72,20 @@ type JsonApiError struct {
 	Source *JsonApiErrorSource `json:"source,omitempty"`
 }
 
-// TODO: Implement via .env
+func (r *Resource) GetID() string {
+	return r.ID
+}
+
 func (r *Resource) URL() string {
-	return GsonApiConfig.URL
+	return GsonAPIConfig.URL()
+}
+
+func LinkSelfCollection(r Resourcer) string {
+	return r.URL() + r.URI()
+}
+
+func LinkSelfInstance(r Resourcer) string {
+	return LinkSelfCollection(r) + "/" + r.GetID()
 }
 
 func (r *Resource) Errors() []JsonApiError {
