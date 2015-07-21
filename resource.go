@@ -9,7 +9,6 @@ import (
 
 type JsonApiResourcer interface {
 	Resourcer
-	BuildLinks()
 }
 
 type JsonApiResource struct {
@@ -22,6 +21,7 @@ type Resourcer interface {
 	URL() string
 	URI() string
 	GetID() string
+	BuildLinks()
 	MapToModel(model interface{}) error
 	MapFromModel(model interface{})
 	Errors() []JsonApiError
