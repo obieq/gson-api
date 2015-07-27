@@ -77,7 +77,7 @@ func (r *Resource) GetID() string {
 }
 
 func (r *Resource) URL() string {
-	return GsonAPIConfig.URL()
+	return Config.URL
 }
 
 func LinkSelfCollection(r Resourcer) string {
