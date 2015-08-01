@@ -2,22 +2,14 @@ package gsonapi
 
 import (
 	"log"
-	"os"
 
+	"github.com/obieq/gas"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("Config", func() {
 	BeforeEach(func() {
-	})
-
-	Context("Parsing", func() {
-		It("should load an env value", func() {
-			os.Setenv("EXISTING_ENV_VALUE", "test")
-			v := getEnv("EXISTING_ENV_VALUE")
-			Ω(v).Should(Equal("test"))
-		})
 	})
 
 	Context("Errors", func() {
@@ -52,7 +44,7 @@ var _ = Describe("Config", func() {
 			}()
 			c := newConfig()
 			Ω(c).ShouldNot(BeNil())
-			getString("non_existing_env_test")
+			gas.GetString("non_existing_env_test")
 		})
 	})
 })
