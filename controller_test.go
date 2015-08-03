@@ -17,6 +17,7 @@ import (
 )
 
 var AUTOMOBILE_ID = "aaaa-bbbb-cccc-dddd"
+var autoModel1 AutomobileModel
 
 func MapErrorParam(server *martini.ClassicMartini, err error) {
 	server.Map(err)
@@ -83,6 +84,32 @@ func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bo
 	HandlePostResponse(success, jsonApiError, &resource, r)
 }
 
+func HandlePatchAutomobile(args martini.Params, request JsonApiResource, r render.Render, success bool, err error) {
+	var resource AutomobileResource
+	var jsonApiError *JsonApiError
+
+	if success {
+		// map the resource to the model
+		// NOTE: should perform a partial update
+		UnmarshalJsonApiData(request.Data, &resource)
+		log.Println("resource:", resource)
+		log.Println("model:", autoModel1)
+		resource.MapToModel(&autoModel1)
+		log.Println("model:", autoModel1)
+
+		// map the model to the resource
+		resource = AutomobileResource{}
+		resource.MapFromModel(autoModel1)
+		log.Println("resource:", resource)
+	} else if err != nil && err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
+	} else { // success = false, i.e., business rule validation errors
+		resource.SetErrors(BuildErrors())
+	}
+
+	HandlePatchResponse(success, jsonApiError, &resource, r)
+}
+
 func HandleDeleteAutomobile(r render.Render, err error) {
 	var jsonApiError *JsonApiError
 
@@ -95,8 +122,6 @@ func HandleDeleteAutomobile(r render.Render, err error) {
 
 func MarshalAutomobileResource(auto AutomobileResource) []byte {
 	// Set up a new POST request before every test
-	auto.Attributes = AutomobileResourceAttributes{Year: 2010, Make: "Acura"}
-
 	j := JsonApiResource{Data: auto}
 
 	body, err := json.Marshal(j)
@@ -122,6 +147,13 @@ func BuildPostRoute(server *martini.ClassicMartini) {
 		r.Post("/automobiles", binding.Json(JsonApiResource{}), HandleCreateAutomobile)
 	})
 }
+
+func BuildPatchRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Patch("/automobiles", binding.Json(JsonApiResource{}), HandlePatchAutomobile)
+	})
+}
+
 func BuildDeleteRoute(server *martini.ClassicMartini) {
 	server.Group("/v1", func(r martini.Router) {
 		r.Delete("/automobiles/:id", HandleDeleteAutomobile)
@@ -133,6 +165,7 @@ var _ = Describe("Controller", func() {
 		server   *martini.ClassicMartini
 		request  *http.Request
 		recorder *httptest.ResponseRecorder
+		auto1    *AutomobileResource
 	)
 
 	BeforeEach(func() {
@@ -142,6 +175,10 @@ var _ = Describe("Controller", func() {
 
 		// Record HTTP responses
 		recorder = httptest.NewRecorder()
+
+		// reset global vars
+		auto1 = gory.Build("automobileResource1").(*AutomobileResource)
+		autoModel1 = *gory.Build("automobileModel1").(*AutomobileModel)
 	})
 
 	Context("HTTP GET (List)", func() {
@@ -163,9 +200,9 @@ var _ = Describe("Controller", func() {
 			// verify
 			Ω(recorder.Code).Should(Equal(200))
 			expectedResponse := `{` +
-				`"data":[{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda"},` +
+				`"data":[{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda","active":true},` +
 				`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}},` +
-				`{"type":"automobiles","id":"cccc-3333-dddd-4444","attributes":{"year":1960,"make":"Austin-Healey"},` +
+				`{"type":"automobiles","id":"cccc-3333-dddd-4444","attributes":{"year":1960,"make":"Austin-Healey","active":true},` +
 				`"links":{"self":"https://carz.com/v1/automobiles/cccc-3333-dddd-4444"}}],` +
 				`"links":{"self":"https://carz.com/v1/automobiles"}}`
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
@@ -201,7 +238,7 @@ var _ = Describe("Controller", func() {
 			// verify
 			Ω(recorder.Code).Should(Equal(200))
 			expectedResponse := `{` +
-				`"data":{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda"},` +
+				`"data":{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda","active":true},` +
 				`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}}}`
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
@@ -223,16 +260,13 @@ var _ = Describe("Controller", func() {
 	})
 
 	Context("HTTP POST", func() {
-		var (
-			auto1 *AutomobileResource = &AutomobileResource{}
-		)
-
 		It("should return a 201 Status Code", func() {
 			MapErrorParam(server, errors.New(""))
 			MapSuccessParam(server, true)
 			BuildPostRoute(server)
 
 			// prepare request
+			log.Println(auto1)
 			body := MarshalAutomobileResource(*auto1)
 			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
 
@@ -244,7 +278,7 @@ var _ = Describe("Controller", func() {
 			responseBody :=
 				`{` +
 					`"data":{"type":"automobiles","id":"` + AUTOMOBILE_ID + `",` +
-					`"attributes":{"year":2010,"make":"Acura"},` +
+					`"attributes":{"year":2010,"make":"Mazda","active":true},` +
 					`"links":{"self":"https://carz.com/v1/automobiles/` + AUTOMOBILE_ID + `"}}}`
 			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
 		})
@@ -293,6 +327,95 @@ var _ = Describe("Controller", func() {
 			Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
 		})
 	}) // Context "HTTP POST"
+
+	Context("HTTP PATCH", func() {
+		It("should return a 200 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, true)
+			BuildPatchRoute(server)
+
+			// verify model values are what we expect
+			Ω(autoModel1.Year).Should(Equal(1980))
+			Ω(autoModel1.Make).Should(Equal("Honda"))
+			Ω(autoModel1.Active).Should(Equal(true))
+
+			// prepare resource
+			// NOTE: update both the year and active flag.  don't specify a make, which should remain "Honda"
+			resource := AutomobileResource{}
+			resource.ID = autoModel1.ID
+			y := 2010
+			a := false
+			attrs := AutomobileResourceAttributes{Year: &y, Active: &a}
+			resource.Attributes = attrs
+
+			// prepare request
+			j := JsonApiResource{Data: resource}
+			body, err := json.Marshal(j)
+			Ω(err).NotTo(HaveOccurred())
+			request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify model values were updated as expected
+			Ω(autoModel1.Year).Should(Equal(2010))
+			Ω(autoModel1.Make).Should(Equal("Honda"))
+			Ω(autoModel1.Active).Should(Equal(false))
+
+			// verify response
+			Ω(recorder.Code).Should(Equal(200))
+			responseBody :=
+				`{` +
+					`"data":{"type":"automobiles","id":"` + autoModel1.ID + `",` +
+					`"attributes":{"year":2010,"make":"Honda","active":false},` +
+					`"links":{"self":"https://carz.com/v1/automobiles/` + autoModel1.ID + `"}}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
+		})
+
+		It("should return a 400 Status Code", func() {
+			MapErrorParam(server, errors.New("oops"))
+			MapSuccessParam(server, false)
+			BuildPatchRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(*auto1)
+			request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(400))
+			responseBody := `{"errors":{"status":"400","detail":"oops"}}`
+			Ω(recorder.Body.String()).Should(Equal(responseBody))
+		})
+
+		It("should return a 422 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, false)
+			BuildPatchRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(*auto1)
+			request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(422))
+
+			// NOTE: cannot perform deep equal on errors array, so have to take an alternate approach
+			responseBody1 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
+				`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
+			responseBody2 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}},` +
+				`{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}}]}`
+
+			Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
+		})
+	}) // Context "HTTP PATCH"
 
 	Context("HTTP DELETE", func() {
 		It("should return a 204 Status Code", func() {

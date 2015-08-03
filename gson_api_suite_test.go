@@ -45,9 +45,9 @@ type AutomobileResource struct {
 }
 
 type AutomobileResourceAttributes struct {
-	Year   int    `json:"year,omitempty"`
-	Make   string `json:"make,omitempty"`
-	Active bool   `json:"active,omitempty"`
+	Year   *int    `json:"year,omitempty"`
+	Make   *string `json:"make,omitempty"`
+	Active *bool   `json:"active,omitempty"`
 }
 
 // BuildLinks => builds JSON API links
@@ -77,9 +77,9 @@ func (r *AutomobileResource) MapFromModel(model interface{}) {
 	if !m.HasErrors() {
 		r.ResourceType = AUTOMOBILE_RESOURCE_TYPE
 		r.ID = m.ID
-		attrs.Year = m.Year
-		attrs.Make = m.Make
-		attrs.Active = m.Active
+		attrs.Year = &m.Year
+		attrs.Make = &m.Make
+		attrs.Active = &m.Active
 		r.Attributes = attrs
 
 		// build links
@@ -96,9 +96,15 @@ func (r *AutomobileResource) MapToModel(model interface{}) error {
 	m := model.(*AutomobileModel)
 
 	if err = UnmarshalJsonApiData(r.Attributes, &attrs); err == nil {
-		m.Year = attrs.Year
-		m.Make = attrs.Make
-		m.Active = attrs.Active
+		if v := attrs.Year; v != nil {
+			m.Year = *v
+		}
+		if v := attrs.Make; v != nil {
+			m.Make = *v
+		}
+		if v := attrs.Active; v != nil {
+			m.Active = *v
+		}
 	}
 
 	return err
@@ -124,7 +130,10 @@ var _ = BeforeSuite(func() {
 		factory["ID"] = "aaaa-1111-bbbb-2222"
 		factory["ResourceType"] = "automobiles"
 
-		attrs := AutomobileResourceAttributes{Year: 2010, Make: "Mazda"}
+		y := 2010
+		m := "Mazda"
+		a := true
+		attrs := AutomobileResourceAttributes{Year: &y, Make: &m, Active: &a}
 		factory["Attributes"] = attrs
 	})
 
@@ -132,8 +141,18 @@ var _ = BeforeSuite(func() {
 		factory["ID"] = "cccc-3333-dddd-4444"
 		factory["ResourceType"] = "automobiles"
 
-		attrs := AutomobileResourceAttributes{Year: 1960, Make: "Austin-Healey"}
+		y := 1960
+		m := "Austin-Healey"
+		a := true
+		attrs := AutomobileResourceAttributes{Year: &y, Make: &m, Active: &a}
 		factory["Attributes"] = attrs
+	})
+
+	gory.Define("automobileModel1", AutomobileModel{}, func(factory gory.Factory) {
+		factory["ID"] = "bbbb-2222-eeee-5555"
+		factory["Year"] = 1980
+		factory["Make"] = "Honda"
+		factory["Active"] = true
 	})
 })
 
