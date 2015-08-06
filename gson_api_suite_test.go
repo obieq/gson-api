@@ -69,6 +69,10 @@ func (r *AutomobileResource) SelfLink() string {
 	return r.Links.Self
 }
 
+func (r *AutomobileResource) Atts() interface{} {
+	return &r.Attributes
+}
+
 // MapFromModel => maps a model to a resource
 func (r *AutomobileResource) MapFromModel(model interface{}) {
 	m := model.(AutomobileModel)
