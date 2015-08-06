@@ -27,6 +27,7 @@ type Resourcer interface {
 	Errors() []JsonApiError
 	SetErrors(map[string]*validations.ValidationError)
 	Atts() interface{}
+	SetAtts(interface{})
 }
 
 type Resource struct {

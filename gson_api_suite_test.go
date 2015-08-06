@@ -73,6 +73,10 @@ func (r *AutomobileResource) Atts() interface{} {
 	return &r.Attributes
 }
 
+func (r *AutomobileResource) SetAtts(atts interface{}) {
+	r.Attributes = atts
+}
+
 // MapFromModel => maps a model to a resource
 func (r *AutomobileResource) MapFromModel(model interface{}) {
 	m := model.(AutomobileModel)
