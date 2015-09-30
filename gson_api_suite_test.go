@@ -63,6 +63,19 @@ type DriverResource struct {
 	Active *bool
 }
 
+type CompleteServerInformation struct{}
+
+const baseURL = "http://my.domain"
+const prefix = "v1"
+
+func (i CompleteServerInformation) GetBaseURL() string {
+	return baseURL
+}
+
+func (i CompleteServerInformation) GetPrefix() string {
+	return prefix
+}
+
 // GetReferences to satisfy the jsonapi.MarshalReferences interface
 func (r AutomobileResource) GetReferences() []jsonapi.Reference {
 	return []jsonapi.Reference{

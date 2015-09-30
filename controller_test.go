@@ -63,7 +63,7 @@ func HandleGetAutomobile(r render.Render, err error) {
 	// build links
 	// auto.BuildLinks()
 
-	j, err := jsonapi.MarshalToJSON(auto)
+	j, err := jsonapi.MarshalToJSONWithURLs(auto, CompleteServerInformation{})
 	if err != nil {
 		log.Panicln("panic error:", err)
 	}
