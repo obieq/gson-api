@@ -25,9 +25,20 @@ func (jasi JSONApiServerInfo) GetPrefix() string {
 	return jasi.Prefix
 }
 
-func HandleIndexResponse(err *JsonApiError, link Link, result interface{}, r render.Render) {
+func HandleIndexResponse(jasi JSONApiServerInfo, err *JsonApiError, result interface{}, r render.Render) {
+	var j []byte
+	var jsonError error
+	var response interface{}
+
 	if err == nil {
-		r.JSON(200, map[string]interface{}{"links": link, "data": result}) // TODO: return links before data
+		// r.JSON(200, map[string]interface{}{"links": link, "data": result}) // TODO: return links before data
+		if j, jsonError = jsonapi.MarshalToJSONWithURLs(result, jasi); jsonError != nil {
+			r.JSON(400, map[string]interface{}{"errors": jsonError})
+		}
+		if jsonError = json.Unmarshal(j, &response); jsonError != nil {
+			r.JSON(400, map[string]interface{}{"errors": jsonError})
+		}
+		r.JSON(200, response)
 	} else {
 		r.JSON(404, map[string]interface{}{"errors": err})
 	}

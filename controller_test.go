@@ -2,7 +2,6 @@ package gsonapi
 
 import (
 	"errors"
-	"log"
 	"net/http"
 	"net/http/httptest"
 
@@ -15,8 +14,12 @@ import (
 
 const EXPECTED_CONTENT_TYPE = "application/json; charset=UTF-8"
 
+var TEST_SERVER_INFO = JSONApiServerInfo{BaseURL: "http://my.domain", Prefix: "v1"}
 var AUTOMOBILE_ID = "aaaa-bbbb-cccc-dddd"
+
 var autoModel1 AutomobileModel
+var autoResource1, autoResource2, autoResource3 AutomobileResource
+var driverResource1, driverResource2 DriverResource
 
 func MapErrorParam(server *martini.ClassicMartini, err error) {
 	server.Map(err)
@@ -26,24 +29,17 @@ func MapSuccessParam(server *martini.ClassicMartini, success bool) {
 	server.Map(success)
 }
 
-// func HandleGetAutomobiles(r render.Render, err error) {
-// 	var jsonApiError *JsonApiError
-//
-// 	if err.Error() != "" {
-// 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
-// 	}
-//
-// 	automobiles := make([]AutomobileResource, 2)
-// 	automobiles[0] = *gory.Build("automobileResource1").(*AutomobileResource)
-// 	automobiles[1] = *gory.Build("automobileResource2").(*AutomobileResource)
-//
-// 	// build links
-// 	automobiles[0].BuildLinks()
-// 	automobiles[1].BuildLinks()
-//
-// 	resource := &AutomobileResource{}
-// 	HandleIndexResponse(jsonApiError, Link{Self: LinkSelfCollection(resource)}, automobiles, r)
-// }
+func HandleGetAutomobiles(r render.Render, err error) {
+	var jsonApiError *JsonApiError
+
+	if err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
+	}
+
+	automobiles := []AutomobileResource{autoResource1, autoResource2}
+
+	HandleIndexResponse(TEST_SERVER_INFO, jsonApiError, automobiles, r)
+}
 
 func HandleGetAutomobile(r render.Render, err error) {
 	var jsonApiError *JsonApiError
@@ -52,49 +48,11 @@ func HandleGetAutomobile(r render.Render, err error) {
 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
 	}
 
-	driver1 := *gory.Build("driverResource1").(*DriverResource)
-	driver2 := *gory.Build("driverResource2").(*DriverResource)
-	auto := *gory.Build("automobileResource1").(*AutomobileResource)
-	auto.Drivers = make([]DriverResource, 2)
-	auto.Drivers[0] = driver1
-	auto.Drivers[1] = driver2
+	auto := autoResource1
+	auto.Drivers = []DriverResource{driverResource1, driverResource2}
 
-	HandleGetResponse(JSONApiServerInfo{BaseURL: "http://my.domain", Prefix: "v1"}, jsonApiError, auto, r)
+	HandleGetResponse(TEST_SERVER_INFO, jsonApiError, auto, r)
 }
-
-// func HandleGetAutomobile(r render.Render, err error) {
-// 	var jsonApiError *JsonApiError
-//
-// 	if err.Error() != "" {
-// 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
-// 	}
-//
-// 	auto := *gory.Build("automobileResource1").(*AutomobileResource)
-// 	d1 := DriverResource{ID: "id1"}
-// 	n1 := "Obie"
-// 	a1 := 2
-// 	d1.Name = &n1
-// 	d1.Age = &a1
-// 	auto.Drivers = []DriverResource{d1}
-// 	// auto := AutomobileResource{ID: "Obie", Year: 1997}
-//
-// 	// build links
-// 	// auto.BuildLinks()
-//
-// 	j, err := jsonapi.MarshalToJSONWithURLs(auto, CompleteServerInformation{})
-// 	if err != nil {
-// 		log.Panicln("panic error:", err)
-// 	}
-//
-// 	log.Println("JSON:", j)
-//
-// 	// j, err := jsonapi.MarshalToJSON(post)
-//
-// 	log.Println(j)
-// 	Ω(j).Should(MatchJSON(`{}`))
-//
-// 	HandleGetResponse(jsonApiError, nil, r)
-// }
 
 // func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bool, err error) {
 // 	var resource AutomobileResource
@@ -164,20 +122,19 @@ func HandleGetAutomobile(r render.Render, err error) {
 //
 // 	return body
 // }
-//
-// func BuildGetListRoute(server *martini.ClassicMartini) {
-// 	server.Group("/v1", func(r martini.Router) {
-// 		r.Get("/automobiles", HandleGetAutomobiles)
-// 	})
-// }
-//
+
+func BuildGetListRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Get("/automobiles", HandleGetAutomobiles)
+	})
+}
+
 func BuildGetSingleRoute(server *martini.ClassicMartini) {
 	server.Group("/v1", func(r martini.Router) {
 		r.Get("/automobiles/:id", HandleGetAutomobile)
 	})
 }
 
-//
 // func BuildPostRoute(server *martini.ClassicMartini) {
 // 	server.Group("/v1", func(r martini.Router) {
 // 		r.Post("/automobiles", binding.Json(JsonApiResource{}), HandleCreateAutomobile)
@@ -201,7 +158,6 @@ var _ = Describe("Controller", func() {
 		server   *martini.ClassicMartini
 		request  *http.Request
 		recorder *httptest.ResponseRecorder
-		auto1    *AutomobileResource
 	)
 
 	BeforeEach(func() {
@@ -213,53 +169,91 @@ var _ = Describe("Controller", func() {
 		recorder = httptest.NewRecorder()
 
 		// reset global vars
-		auto1 = gory.Build("automobileResource1").(*AutomobileResource)
-		// autoModel1 = *gory.Build("automobileModel1").(*AutomobileModel)
+		autoResource1 = *gory.Build("automobileResource1").(*AutomobileResource)
+		autoResource2 = *gory.Build("automobileResource2").(*AutomobileResource)
+		autoResource3 = *gory.Build("automobileResource3").(*AutomobileResource)
+
+		driverResource1 = *gory.Build("driverResource1").(*DriverResource)
+		driverResource2 = *gory.Build("driverResource2").(*DriverResource)
 	})
 
-	// Context("HTTP GET (List)", func() {
-	// 	BeforeEach(func() {
-	// 		server.Group("/v1", func(r martini.Router) {
-	// 			r.Get("/automobiles", HandleGetAutomobiles)
-	// 		})
-	// 	})
-	//
-	// 	It("should return a 200 Status Code", func() {
-	// 		MapErrorParam(server, errors.New(""))
-	// 		BuildGetListRoute(server)
-	//
-	// 		request, _ = http.NewRequest("GET", "/v1/automobiles", nil)
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(200))
-	// 		expectedResponse := `{` +
-	// 			`"data":[{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda","active":true},` +
-	// 			`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}},` +
-	// 			`{"type":"automobiles","id":"cccc-3333-dddd-4444","attributes":{"year":1960,"make":"Austin-Healey","active":true},` +
-	// 			`"links":{"self":"https://carz.com/v1/automobiles/cccc-3333-dddd-4444"}}],` +
-	// 			`"links":{"self":"https://carz.com/v1/automobiles"}}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
-	// 	})
-	//
-	// 	It("should return a 404 Status Code", func() {
-	// 		MapErrorParam(server, errors.New("not found"))
-	// 		BuildGetListRoute(server)
-	//
-	// 		request, _ = http.NewRequest("GET", "/v1/automobiles", nil)
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(404))
-	// 		expectedResponse := `{"errors":{"status":"404","detail":"not found"}}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
-	// 	})
-	//
-	// })
+	Context("HTTP GET (List)", func() {
+		BeforeEach(func() {
+			server.Group("/v1", func(r martini.Router) {
+				r.Get("/automobiles", HandleGetAutomobiles)
+			})
+		})
+
+		It("should return a 200 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			BuildGetListRoute(server)
+
+			request, _ = http.NewRequest("GET", "/v1/automobiles", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(200))
+			expectedResponse := `{
+          "data": [
+            {
+              "attributes": {
+                "active": true,
+                "make": "Mazda",
+                "year": 2010
+              },
+              "id": "aaaa-1111-bbbb-2222",
+              "relationships": {
+                "drivers": {
+                  "data": [],
+                  "links": {
+                    "related": "http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/drivers",
+                    "self": "http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/relationships/drivers"
+                  }
+                }
+              },
+              "type": "automobiles"
+            },
+            {
+              "attributes": {
+                "active": true,
+                "make": "Austin-Healey",
+                "year": 1960
+              },
+              "id": "cccc-3333-dddd-4444",
+              "relationships": {
+                "drivers": {
+                  "data": [],
+                  "links": {
+                    "related": "http://my.domain/v1/automobiles/cccc-3333-dddd-4444/drivers",
+                    "self": "http://my.domain/v1/automobiles/cccc-3333-dddd-4444/relationships/drivers"
+                  }
+                }
+              },
+              "type": "automobiles"
+            }
+          ]
+        }`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+		It("should return a 404 Status Code", func() {
+			MapErrorParam(server, errors.New("not found"))
+			BuildGetListRoute(server)
+
+			request, _ = http.NewRequest("GET", "/v1/automobiles", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(404))
+			expectedResponse := `{"errors":{"status":"404","detail":"not found"}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+	})
 
 	Context("HTTP GET (Single)", func() {
 		It("should return a 200 Status Code", func() {
@@ -273,6 +267,7 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(200))
+			Ω(recorder.Header().Get("Content-Type")).Should(Equal(EXPECTED_CONTENT_TYPE))
 			expectedResponse := `{
           "data": {
             "attributes": {
@@ -322,7 +317,6 @@ var _ = Describe("Controller", func() {
             }
           ]
         }`
-			log.Println(recorder.Header())
 			Ω(recorder.Header().Get("Content-Type")).Should(Equal(EXPECTED_CONTENT_TYPE))
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
