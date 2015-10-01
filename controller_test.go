@@ -7,12 +7,13 @@ import (
 	"net/http/httptest"
 
 	"github.com/go-martini/martini"
-	"github.com/manyminds/api2go/jsonapi"
 	"github.com/martini-contrib/render"
 	"github.com/modocache/gory"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )
+
+const EXPECTED_CONTENT_TYPE = "application/json; charset=UTF-8"
 
 var AUTOMOBILE_ID = "aaaa-bbbb-cccc-dddd"
 var autoModel1 AutomobileModel
@@ -51,32 +52,49 @@ func HandleGetAutomobile(r render.Render, err error) {
 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
 	}
 
+	driver1 := *gory.Build("driverResource1").(*DriverResource)
+	driver2 := *gory.Build("driverResource2").(*DriverResource)
 	auto := *gory.Build("automobileResource1").(*AutomobileResource)
-	d1 := DriverResource{ID: "id1"}
-	n1 := "Obie"
-	a1 := 2
-	d1.Name = &n1
-	d1.Age = &a1
-	auto.Drivers = []DriverResource{d1}
-	// auto := AutomobileResource{ID: "Obie", Year: 1997}
+	auto.Drivers = make([]DriverResource, 2)
+	auto.Drivers[0] = driver1
+	auto.Drivers[1] = driver2
 
-	// build links
-	// auto.BuildLinks()
-
-	j, err := jsonapi.MarshalToJSONWithURLs(auto, CompleteServerInformation{})
-	if err != nil {
-		log.Panicln("panic error:", err)
-	}
-
-	log.Println("JSON:", j)
-
-	// j, err := jsonapi.MarshalToJSON(post)
-
-	log.Println(j)
-	Ω(j).Should(MatchJSON(`{}`))
-
-	HandleGetResponse(jsonApiError, nil, r)
+	HandleGetResponse(JSONApiServerInfo{BaseURL: "http://my.domain", Prefix: "v1"}, jsonApiError, auto, r)
 }
+
+// func HandleGetAutomobile(r render.Render, err error) {
+// 	var jsonApiError *JsonApiError
+//
+// 	if err.Error() != "" {
+// 		jsonApiError = &JsonApiError{Status: "404", Detail: err.Error()}
+// 	}
+//
+// 	auto := *gory.Build("automobileResource1").(*AutomobileResource)
+// 	d1 := DriverResource{ID: "id1"}
+// 	n1 := "Obie"
+// 	a1 := 2
+// 	d1.Name = &n1
+// 	d1.Age = &a1
+// 	auto.Drivers = []DriverResource{d1}
+// 	// auto := AutomobileResource{ID: "Obie", Year: 1997}
+//
+// 	// build links
+// 	// auto.BuildLinks()
+//
+// 	j, err := jsonapi.MarshalToJSONWithURLs(auto, CompleteServerInformation{})
+// 	if err != nil {
+// 		log.Panicln("panic error:", err)
+// 	}
+//
+// 	log.Println("JSON:", j)
+//
+// 	// j, err := jsonapi.MarshalToJSON(post)
+//
+// 	log.Println(j)
+// 	Ω(j).Should(MatchJSON(`{}`))
+//
+// 	HandleGetResponse(jsonApiError, nil, r)
+// }
 
 // func HandleCreateAutomobile(request JsonApiResource, r render.Render, success bool, err error) {
 // 	var resource AutomobileResource
@@ -255,9 +273,57 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(200))
-			expectedResponse := `{` +
-				`"data":{"type":"automobiles","id":"aaaa-1111-bbbb-2222","attributes":{"year":2010,"make":"Mazda","active":true},` +
-				`"links":{"self":"https://carz.com/v1/automobiles/aaaa-1111-bbbb-2222"}}}`
+			expectedResponse := `{
+          "data": {
+            "attributes": {
+              "active": true,
+              "make": "Mazda",
+              "year": 2010
+            },
+            "id": "aaaa-1111-bbbb-2222",
+            "relationships": {
+              "drivers": {
+                "data": [
+                  {
+                    "id": "driver-id-1",
+                    "type": "drivers"
+                  },
+                  {
+                    "id": "driver-id-2",
+                    "type": "drivers"
+                  }
+                ],
+                "links": {
+                  "related": "http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/drivers",
+                  "self": "http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/relationships/drivers"
+                }
+              }
+            },
+            "type": "automobiles"
+          },
+          "included": [
+            {
+              "attributes": {
+                "active": true,
+                "age": 40,
+                "name": "paul walker"
+              },
+              "id": "driver-id-1",
+              "type": "drivers"
+            },
+            {
+              "attributes": {
+                "active": false,
+                "age": 45,
+                "name": "steve mcqueen"
+              },
+              "id": "driver-id-2",
+              "type": "drivers"
+            }
+          ]
+        }`
+			log.Println(recorder.Header())
+			Ω(recorder.Header().Get("Content-Type")).Should(Equal(EXPECTED_CONTENT_TYPE))
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
 

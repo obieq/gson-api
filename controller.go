@@ -1,6 +1,29 @@
 package gsonapi
 
-import "github.com/martini-contrib/render"
+import (
+	"encoding/json"
+
+	"github.com/manyminds/api2go/jsonapi"
+	"github.com/martini-contrib/render"
+)
+
+// JSONApiServerInfo => contains necessary info for building an api's route
+type JSONApiServerInfo struct {
+	BaseURL string
+	Prefix  string
+}
+
+// GetBaseURL => api routes base url
+// EX: https://test.myapi.com/.....
+func (jasi JSONApiServerInfo) GetBaseURL() string {
+	return jasi.BaseURL
+}
+
+// GetPrefix => api route's prefix
+// EX: https://xxxxx.com/v1/xxxxx (v1 is the prefix)
+func (jasi JSONApiServerInfo) GetPrefix() string {
+	return jasi.Prefix
+}
 
 func HandleIndexResponse(err *JsonApiError, link Link, result interface{}, r render.Render) {
 	if err == nil {
@@ -10,9 +33,19 @@ func HandleIndexResponse(err *JsonApiError, link Link, result interface{}, r ren
 	}
 }
 
-func HandleGetResponse(err *JsonApiError, result interface{}, r render.Render) {
+func HandleGetResponse(jasi JSONApiServerInfo, err *JsonApiError, result interface{}, r render.Render) {
+	var j []byte
+	var jsonError error
+	var response interface{}
+
 	if err == nil {
-		r.JSON(200, map[string]interface{}{"data": result})
+		if j, jsonError = jsonapi.MarshalToJSONWithURLs(result, jasi); jsonError != nil {
+			r.JSON(400, map[string]interface{}{"errors": jsonError})
+		}
+		if jsonError = json.Unmarshal(j, &response); jsonError != nil {
+			r.JSON(400, map[string]interface{}{"errors": jsonError})
+		}
+		r.JSON(200, response)
 	} else {
 		r.JSON(404, map[string]interface{}{"errors": err})
 	}

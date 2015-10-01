@@ -32,18 +32,6 @@ type AutomobileModel struct {
 // ******************* END MODEL SECTION ****************************** //
 
 // ******************* BEGIN RESOURCE SECTION ************************* //
-const AUTOMOBILE_RESOURCE_TYPE string = "automobiles"
-
-// AutomobileLinks => JSON API links
-type AutomobileLinks struct {
-	Link
-}
-
-type Poster struct {
-	ID string `jsonapi:"-"` // Ignore ID field because the ID is fetched via the
-	// GetID() method and must not be inside the attributes object.
-	Title string
-}
 
 // Automobile Resource
 type AutomobileResource struct {
@@ -51,7 +39,7 @@ type AutomobileResource struct {
 	Year       *int             `json:"year,omitempty"`
 	Make       *string          `json:"make,omitempty"`
 	Active     *bool            `json:"active,omitempty"`
-	Drivers    []DriverResource `json:"driver-resources,omitempty" jsonapi:"-"`
+	Drivers    []DriverResource `json:"drivers,omitempty" jsonapi:"-"`
 	DriversIDs string           `jsonapi:"-"`
 }
 
@@ -61,19 +49,6 @@ type DriverResource struct {
 	Name   *string
 	Age    *int
 	Active *bool
-}
-
-type CompleteServerInformation struct{}
-
-const baseURL = "http://my.domain"
-const prefix = "v1"
-
-func (i CompleteServerInformation) GetBaseURL() string {
-	return baseURL
-}
-
-func (i CompleteServerInformation) GetPrefix() string {
-	return prefix
 }
 
 // GetReferences to satisfy the jsonapi.MarshalReferences interface
@@ -106,15 +81,11 @@ func (r AutomobileResource) GetReferencedStructs() []jsonapi.MarshalIdentifier {
 }
 
 func (r AutomobileResource) GetName() string {
-	return "automobile-resources"
+	return "automobiles"
 }
 
 // GetID to satisfy jsonapi.MarshalIdentifier interface
 func (r AutomobileResource) GetID() string {
-	return r.ID
-}
-
-func (r Poster) GetID() string {
 	return r.ID
 }
 
@@ -123,43 +94,9 @@ func (r DriverResource) GetID() string {
 	return r.ID
 }
 
-// type AutomobileResource struct {
-// 	Resource
-// 	Links *AutomobileLinks `json:"links,omitempty"`
-// }
-
-// type AutomobileResourceAttributes struct {
-// 	Year   *int    `json:"year,omitempty"`
-// 	Make   *string `json:"make,omitempty"`
-// 	Active *bool   `json:"active,omitempty"`
-// }
-
-// BuildLinks => builds JSON API links
-// func (r *AutomobileResource) BuildLinks() {
-// 	r.Links = &AutomobileLinks{Link: Link{Self: LinkSelfInstance(r)}}
-// }
-
-// NOTE: the code below is an example of how
-//       to customize the URL value on a per resource basis
-//func (r *AutomobileResource) URL() string {
-//return "https://overridden-url.com/v5/"
-//}
-
-// func (r *AutomobileResource) URI() string {
-// 	return AUTOMOBILE_RESOURCE_TYPE
-// }
-//
-// func (r *AutomobileResource) SelfLink() string {
-// 	return r.Links.Self
-// }
-//
-// func (r *AutomobileResource) Atts() interface{} {
-// 	return &r.Attributes
-// }
-//
-// func (r *AutomobileResource) SetAtts(atts interface{}) {
-// 	r.Attributes = atts
-// }
+func (r DriverResource) GetName() string {
+	return "drivers"
+}
 
 // MapFromModel => maps a model to a resource
 // func (r *AutomobileResource) MapFromModel(model interface{}) {
@@ -205,49 +142,19 @@ func (r DriverResource) GetID() string {
 // // ******************* END RESOURCE SECTION *************************** //
 //
 // // ******************* BEGIN TEST HELPERS SECTION ********************* //
-// func BuildErrors() map[string]*validations.ValidationError {
-// 	errors := map[string]*validations.ValidationError{}
-// 	veYear := validations.ValidationError{Key: "year", Message: "cannot be greater than 2016"}
-// 	veMake := validations.ValidationError{Key: "make", Message: "cannot be blank"}
-// 	errors[veYear.Key] = &veYear
-// 	errors[veMake.Key] = &veMake
-// 	return errors
-// }
+func BuildErrors() map[string]*validations.ValidationError {
+	errors := map[string]*validations.ValidationError{}
+	veYear := validations.ValidationError{Key: "year", Message: "cannot be greater than 2016"}
+	veMake := validations.ValidationError{Key: "make", Message: "cannot be blank"}
+	errors[veYear.Key] = &veYear
+	errors[veMake.Key] = &veMake
+	return errors
+}
+
 //
 // // ******************* END TEST HELPERS SECTION *********************** //
 //
 // // ******************* BEGIN TEST FACTORIES SECTION ******************* //
-// var _ = BeforeSuite(func() {
-// 	gory.Define("automobileResource1", AutomobileResource{}, func(factory gory.Factory) {
-// 		factory["ID"] = "aaaa-1111-bbbb-2222"
-// 		factory["ResourceType"] = "automobiles"
-//
-// 		y := 2010
-// 		m := "Mazda"
-// 		a := true
-// 		attrs := AutomobileResourceAttributes{Year: &y, Make: &m, Active: &a}
-// 		factory["Attributes"] = attrs
-// 	})
-//
-// 	gory.Define("automobileResource2", AutomobileResource{}, func(factory gory.Factory) {
-// 		factory["ID"] = "cccc-3333-dddd-4444"
-// 		factory["ResourceType"] = "automobiles"
-//
-// 		y := 1960
-// 		m := "Austin-Healey"
-// 		a := true
-// 		attrs := AutomobileResourceAttributes{Year: &y, Make: &m, Active: &a}
-// 		factory["Attributes"] = attrs
-// 	})
-//
-// 	gory.Define("automobileModel1", AutomobileModel{}, func(factory gory.Factory) {
-// 		factory["ID"] = "bbbb-2222-eeee-5555"
-// 		factory["Year"] = 1980
-// 		factory["Make"] = "Honda"
-// 		factory["Active"] = true
-// 	})
-// })
-
 var _ = BeforeSuite(func() {
 	gory.Define("automobileResource1", AutomobileResource{}, func(factory gory.Factory) {
 		y := 2010
@@ -257,6 +164,50 @@ var _ = BeforeSuite(func() {
 		factory["ID"] = "aaaa-1111-bbbb-2222"
 		factory["Year"] = &y
 		factory["Make"] = &m
+		factory["Active"] = &a
+	})
+
+	gory.Define("automobileResource2", AutomobileResource{}, func(factory gory.Factory) {
+		y := 1960
+		m := "Austin-Healey"
+		a := true
+
+		factory["ID"] = "cccc-3333-dddd-4444"
+		factory["Year"] = &y
+		factory["Make"] = &m
+		factory["Active"] = &a
+	})
+
+	gory.Define("automobileResource3", AutomobileResource{}, func(factory gory.Factory) {
+		y := 1980
+		m := "Honda"
+		a := false
+
+		factory["ID"] = "bbbb-2222-eeee-5555"
+		factory["Year"] = &y
+		factory["Make"] = &m
+		factory["Active"] = &a
+	})
+
+	gory.Define("driverResource1", DriverResource{}, func(factory gory.Factory) {
+		n := "paul walker"
+		age := 40
+		a := true
+
+		factory["ID"] = "driver-id-1"
+		factory["Name"] = &n
+		factory["Age"] = &age
+		factory["Active"] = &a
+	})
+
+	gory.Define("driverResource2", DriverResource{}, func(factory gory.Factory) {
+		n := "steve mcqueen"
+		age := 45
+		a := false
+
+		factory["ID"] = "driver-id-2"
+		factory["Name"] = &n
+		factory["Age"] = &age
 		factory["Active"] = &a
 	})
 })
