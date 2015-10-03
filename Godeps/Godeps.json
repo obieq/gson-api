@@ -36,8 +36,9 @@
 			"Rev": "337395e44efb4affc8bf11971e22acbd4e27a32d"
 		},
 		{
-			"ImportPath": "github.com/martini-contrib/binding",
-			"Rev": "8aaceec3b52c275477f32c95ea5c6e8ccaba04c5"
+			"ImportPath": "github.com/manyminds/api2go/jsonapi",
+			"Comment": "0.5-2-g72259cb",
+			"Rev": "72259cbf8cd22938ae3428c0e8db2cf49f3f7049"
 		},
 		{
 			"ImportPath": "github.com/martini-contrib/render",
@@ -88,6 +89,11 @@
 		{
 			"ImportPath": "github.com/spf13/viper",
 			"Rev": "2abb1bebfde865b0bb6bb7ada5be63ec78527fa6"
+		},
+		{
+			"ImportPath": "gopkg.in/guregu/null.v2",
+			"Comment": "v2.2",
+			"Rev": "4ac4f00378f403715e68ae8827a8b1d8e9addf4a"
 		},
 		{
 			"ImportPath": "gopkg.in/yaml.v2",
