@@ -12,29 +12,36 @@ type JsonApiResourcer interface {
 }
 
 type JsonApiResource struct {
-	Data   interface{}
+	Data   interface{}    `json:"data"`
 	Errors []JsonApiError `json:"errors,omitempty"`
 	Meta   interface{}    `json:"meta,omitempty"`
 }
 
+type JsonApiPayload struct {
+	Body interface{}
+}
+
 type Resourcer interface {
-	URL() string
-	URI() string
+	// URL() string
+	// URI() string
 	GetID() string
-	BuildLinks()
+	SetID(string) error
+	// BuildLinks()
 	MapToModel(model interface{}) error
 	MapFromModel(model interface{})
 	Errors() []JsonApiError
 	SetErrors(map[string]*validations.ValidationError)
-	Atts() interface{}
-	SetAtts(interface{})
+	// Atts() interface{}
+	// SetAtts(interface{})
 }
 
 type Resource struct {
-	ResourceType string      `json:"type,omitempty"`
-	ID           string      `json:"id,omitempty"`
-	Attributes   interface{} `json:"attributes,omitempty"`
-	errors       map[string]*validations.ValidationError
+	// ResourceType string      `json:"type,omitempty"`
+	// ID           string      `json:"id,omitempty"`
+	ID string `json:"id,omitempty" jsonapi:"-"`
+	// ID string `json:"id,omitempty" jsonapi:"name=id"`
+	// Attributes   interface{} `json:"attributes,omitempty"`
+	errors map[string]*validations.ValidationError
 }
 
 type Link struct {
@@ -74,21 +81,26 @@ type JsonApiError struct {
 	Source *JsonApiErrorSource `json:"source,omitempty"`
 }
 
-func (r *Resource) GetID() string {
+func (r Resource) GetID() string {
 	return r.ID
 }
 
-func (r *Resource) URL() string {
-	return Config.URL
+func (r *Resource) SetID(id string) error {
+	r.ID = id
+	return nil
 }
 
-func LinkSelfCollection(r Resourcer) string {
-	return r.URL() + r.URI()
-}
-
-func LinkSelfInstance(r Resourcer) string {
-	return LinkSelfCollection(r) + "/" + r.GetID()
-}
+// func (r *Resource) URL() string {
+// 	return Config.URL
+// }
+//
+// func LinkSelfCollection(r Resourcer) string {
+// 	return r.URL() + r.URI()
+// }
+//
+// func LinkSelfInstance(r Resourcer) string {
+// 	return LinkSelfCollection(r) + "/" + r.GetID()
+// }
 
 func (r *Resource) Errors() []JsonApiError {
 	errors := []JsonApiError{}
