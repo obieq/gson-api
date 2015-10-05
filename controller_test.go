@@ -58,15 +58,12 @@ func HandleGetAutomobile(r render.Render, err error) {
 // func HandleCreateAutomobile(request JsonApiPayload, r render.Render, success bool, err error) {
 func HandleCreateAutomobile(request *http.Request, r render.Render, success bool, err error) {
 	var resource AutomobileResource
-	// result := &[]AutomobileResource{}
 	var jsonApiError *JsonApiError
 
 	if success {
 		// map the resource to the model
 		m := AutomobileModel{}
-		// UnmarshalJsonApiData(request.Data, &resource)
-		// jsonapi.UnmarshalFromJSON(request, &resource)
-		log.Println("NELS!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		log.Println("**************** IN HANDLE CREATE AUTOMOBILE ****************")
 		log.Println(request)
 		defer request.Body.Close()
 
@@ -77,11 +74,6 @@ func HandleCreateAutomobile(request *http.Request, r render.Render, success bool
 		log.Println(err)
 		log.Println(resource)
 
-		// jsonapi.UnmarshalFromJSON(body, result)
-		// log.Println(result)
-
-		// log.Println(req)
-		// log.Println(req.Body)
 		resource.MapToModel(&m)
 
 		// map the model to the resource
@@ -97,32 +89,40 @@ func HandleCreateAutomobile(request *http.Request, r render.Render, success bool
 	HandlePostResponse(TEST_SERVER_INFO, success, jsonApiError, &resource, r)
 }
 
-// func HandlePatchAutomobile(args martini.Params, request JsonApiResource, r render.Render, success bool, err error) {
-// 	var resource AutomobileResource
-// 	var jsonApiError *JsonApiError
-//
-// 	if success {
-// 		// map the resource to the model
-// 		// NOTE: should perform a partial update
-// 		UnmarshalJsonApiData(request.Data, &resource)
-// 		log.Println("resource:", resource)
-// 		log.Println("model:", autoModel1)
-// 		resource.MapToModel(&autoModel1)
-// 		log.Println("model:", autoModel1)
-//
-// 		// map the model to the resource
-// 		resource = AutomobileResource{}
-// 		resource.MapFromModel(autoModel1)
-// 		log.Println("resource:", resource)
-// 	} else if err != nil && err.Error() != "" {
-// 		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
-// 	} else { // success = false, i.e., business rule validation errors
-// 		resource.SetErrors(BuildErrors())
-// 	}
-//
-// 	HandlePatchResponse(success, jsonApiError, &resource, r)
-// }
-//
+func HandlePatchAutomobile(args martini.Params, request *http.Request, r render.Render, success bool, err error) {
+	var resource AutomobileResource
+	var jsonApiError *JsonApiError
+
+	if success {
+		// map the resource to the model
+		// NOTE: should perform a partial update
+		log.Println("**************** IN HANDLE PATCH AUTOMOBILE ****************")
+		log.Println(request)
+		defer request.Body.Close()
+
+		body, _ := ioutil.ReadAll(request.Body)
+		log.Println(body)
+		log.Println(string(body))
+		err = jsonapi.UnmarshalFromJSON(body, &resource)
+		log.Println(err)
+		log.Println(resource)
+
+		rID := resource.GetID()
+		m := *gory.Build("automobileModel" + rID[len(rID)-1:]).(*AutomobileModel)
+		resource.MapToModel(&m)
+
+		// map the model to the resource
+		resource = AutomobileResource{}
+		resource.MapFromModel(m)
+	} else if err != nil && err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
+	} else { // success = false, i.e., business rule validation errors
+		resource.SetErrors(BuildErrors())
+	}
+
+	HandlePatchResponse(TEST_SERVER_INFO, success, jsonApiError, &resource, r)
+}
+
 // func HandleDeleteAutomobile(r render.Render, err error) {
 // 	var jsonApiError *JsonApiError
 //
@@ -163,12 +163,13 @@ func BuildPostRoute(server *martini.ClassicMartini) {
 	})
 }
 
-// func BuildPatchRoute(server *martini.ClassicMartini) {
-// 	server.Group("/v1", func(r martini.Router) {
-// 		r.Patch("/automobiles", binding.Json(JsonApiResource{}), HandlePatchAutomobile)
-// 	})
-// }
-//
+func BuildPatchRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Patch("/automobiles", HandlePatchAutomobile)
+		// r.Patch("/automobiles", binding.Json(JsonApiResource{}), HandlePatchAutomobile)
+	})
+}
+
 // func BuildDeleteRoute(server *martini.ClassicMartini) {
 // 	server.Group("/v1", func(r martini.Router) {
 // 		r.Delete("/automobiles/:id", HandleDeleteAutomobile)
@@ -191,6 +192,7 @@ var _ = Describe("Controller", func() {
 		recorder = httptest.NewRecorder()
 
 		// reset global vars
+		autoModel1 = *gory.Build("automobileModel1").(*AutomobileModel)
 		autoResource1 = *gory.Build("automobileResource1").(*AutomobileResource)
 		autoResource2 = *gory.Build("automobileResource2").(*AutomobileResource)
 		autoResource3 = *gory.Build("automobileResource3").(*AutomobileResource)
@@ -290,208 +292,153 @@ var _ = Describe("Controller", func() {
 
 			// verify
 			Ω(recorder.Code).Should(Equal(201))
+			// minified via http://www.webtoolkitonline.com/json-minifier.html
+			responseBody := `{"data":{"attributes":{"active":true,"ages":[4,6],"body-style":"4 door sedan","inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}],"make":"Mazda","year":2010},"id":"aaaa-bbbb-cccc-dddd","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"},{"id":"driver-id-2","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/aaaa-bbbb-cccc-dddd/drivers","self":"http://my.domain/v1/automobiles/aaaa-bbbb-cccc-dddd/relationships/drivers"}}},"type":"automobiles"},"included":[{"attributes":{"active":true,"age":40,"name":"paul walker"},"id":"driver-id-1","type":"drivers"},{"attributes":{"active":false,"age":45,"name":"steve mcqueen"},"id":"driver-id-2","type":"drivers"}]}`
+			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
+		})
+
+		It("should return a 400 Status Code", func() {
+			MapErrorParam(server, errors.New("oops"))
+			MapSuccessParam(server, false)
+			BuildPostRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(autoResource1)
+			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(400))
+			responseBody := `{"errors":{"status":"400","detail":"oops"}}`
+			Ω(recorder.Body.String()).Should(Equal(responseBody))
+		})
+
+		It("should return a 422 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, false)
+			BuildPostRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(autoResource1)
+			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(422))
+
+			// NOTE: cannot perform deep equal on errors array, so have to take an alternate approach
+			responseBody1 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
+				`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
+			responseBody2 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}},` +
+				`{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}}]}`
+
+			Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
+		})
+	}) // Context "HTTP POST"
+
+	Context("HTTP PATCH", func() {
+		It("should return a 200 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, true)
+			BuildPatchRoute(server)
+
+			// verify model values are what we expect
+			Ω(autoModel1.Year).Should(Equal(1980))                 // should update
+			Ω(autoModel1.Make).Should(Equal("Honda"))              // should remain unchanged
+			Ω(*autoModel1.BodyStyle).Should(Equal("4 door sedan")) // should update
+			Ω(autoModel1.Active).Should(Equal(true))               // should update
+
+			// prepare request
+			// update the following properties: Year, BodyStyle, and Active
+			body := []byte(`{` +
+				`"data":{"type":"automobiles","id":"` + autoModel1.ID + `",` +
+				`"attributes":{"body-style":"2 door coupe","year":2010,"active":false}}}`)
+
+			request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify response
+			Ω(recorder.Code).Should(Equal(200))
 			responseBody :=
 				`{
           "data": {
             "attributes": {
-              "active": true,
-              "ages": [
-                4,
-                6
-              ],
-              "body-style": "4 door sedan",
-              "inspections": [
-                {
-                  "location": "216 broad ave, richmond va 23226",
-                  "name": "inspection #1"
-                },
-                {
-                  "location": "2201 stoddard ct, arlington va 22202",
-                  "name": "inspection #2"
-                }
-              ],
-              "make": "Mazda",
+              "active": false,
+              "ages": [],
+              "body-style": "2 door coupe",
+              "inspections": null,
+              "make": "Honda",
               "year": 2010
             },
-            "id": "aaaa-bbbb-cccc-dddd",
+            "id": "automobile-model-1",
             "relationships": {
               "drivers": {
-                "data": [
-                  {
-                    "id": "driver-id-1",
-                    "type": "drivers"
-                  },
-                  {
-                    "id": "driver-id-2",
-                    "type": "drivers"
-                  }
-                ],
+                "data": [],
                 "links": {
-                  "related": "http://my.domain/v1/automobiles/aaaa-bbbb-cccc-dddd/drivers",
-                  "self": "http://my.domain/v1/automobiles/aaaa-bbbb-cccc-dddd/relationships/drivers"
+                  "related": "http://my.domain/v1/automobiles/automobile-model-1/drivers",
+                  "self": "http://my.domain/v1/automobiles/automobile-model-1/relationships/drivers"
                 }
               }
             },
             "type": "automobiles"
-          },
-          "included": [
-            {
-              "attributes": {
-                "active": true,
-                "age": 40,
-                "name": "paul walker"
-              },
-              "id": "driver-id-1",
-              "type": "drivers"
-            },
-            {
-              "attributes": {
-                "active": false,
-                "age": 45,
-                "name": "steve mcqueen"
-              },
-              "id": "driver-id-2",
-              "type": "drivers"
-            }
-          ]
+          }
         }`
 			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
 		})
 
-		// 	It("should return a 400 Status Code", func() {
-		// 		MapErrorParam(server, errors.New("oops"))
-		// 		MapSuccessParam(server, false)
-		// 		BuildPostRoute(server)
-		//
-		// 		// prepare request
-		// 		body := MarshalAutomobileResource(*auto1)
-		// 		request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
-		//
-		// 		// send request to server
-		// 		server.ServeHTTP(recorder, request)
-		//
-		// 		// verify
-		// 		Ω(recorder.Code).Should(Equal(400))
-		// 		responseBody := `{"errors":{"status":"400","detail":"oops"}}`
-		// 		Ω(recorder.Body.String()).Should(Equal(responseBody))
-		// 	})
-		//
-		// 	It("should return a 422 Status Code", func() {
-		// 		MapErrorParam(server, errors.New(""))
-		// 		MapSuccessParam(server, false)
-		// 		BuildPostRoute(server)
-		//
-		// 		// prepare request
-		// 		body := MarshalAutomobileResource(*auto1)
-		// 		request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
-		//
-		// 		// send request to server
-		// 		server.ServeHTTP(recorder, request)
-		//
-		// 		// verify
-		// 		Ω(recorder.Code).Should(Equal(422))
-		//
-		// 		// NOTE: cannot perform deep equal on errors array, so have to take an alternate approach
-		// 		responseBody1 := `{` +
-		// 			`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
-		// 			`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
-		// 		responseBody2 := `{` +
-		// 			`"errors":[{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}},` +
-		// 			`{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}}]}`
-		//
-		// 		Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
-		// 	})
-	}) // Context "HTTP POST"
-	//
-	// Context("HTTP PATCH", func() {
-	// 	It("should return a 200 Status Code", func() {
-	// 		MapErrorParam(server, errors.New(""))
-	// 		MapSuccessParam(server, true)
-	// 		BuildPatchRoute(server)
-	//
-	// 		// verify model values are what we expect
-	// 		Ω(autoModel1.Year).Should(Equal(1980))
-	// 		Ω(autoModel1.Make).Should(Equal("Honda"))
-	// 		Ω(autoModel1.Active).Should(Equal(true))
-	//
-	// 		// prepare resource
-	// 		// NOTE: update both the year and active flag.  don't specify a make, which should remain "Honda"
-	// 		resource := AutomobileResource{}
-	// 		resource.ID = autoModel1.ID
-	// 		y := 2010
-	// 		a := false
-	// 		attrs := AutomobileResourceAttributes{Year: &y, Active: &a}
-	// 		resource.Attributes = attrs
-	//
-	// 		// prepare request
-	// 		j := JsonApiResource{Data: resource}
-	// 		body, err := json.Marshal(j)
-	// 		Ω(err).NotTo(HaveOccurred())
-	// 		request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify model values were updated as expected
-	// 		Ω(autoModel1.Year).Should(Equal(2010))
-	// 		Ω(autoModel1.Make).Should(Equal("Honda"))
-	// 		Ω(autoModel1.Active).Should(Equal(false))
-	//
-	// 		// verify response
-	// 		Ω(recorder.Code).Should(Equal(200))
-	// 		responseBody :=
-	// 			`{` +
-	// 				`"data":{"type":"automobiles","id":"` + autoModel1.ID + `",` +
-	// 				`"attributes":{"year":2010,"make":"Honda","active":false},` +
-	// 				`"links":{"self":"https://carz.com/v1/automobiles/` + autoModel1.ID + `"}}}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
-	// 	})
-	//
-	// 	It("should return a 400 Status Code", func() {
-	// 		MapErrorParam(server, errors.New("oops"))
-	// 		MapSuccessParam(server, false)
-	// 		BuildPatchRoute(server)
-	//
-	// 		// prepare request
-	// 		body := MarshalAutomobileResource(*auto1)
-	// 		request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(400))
-	// 		responseBody := `{"errors":{"status":"400","detail":"oops"}}`
-	// 		Ω(recorder.Body.String()).Should(Equal(responseBody))
-	// 	})
-	//
-	// 	It("should return a 422 Status Code", func() {
-	// 		MapErrorParam(server, errors.New(""))
-	// 		MapSuccessParam(server, false)
-	// 		BuildPatchRoute(server)
-	//
-	// 		// prepare request
-	// 		body := MarshalAutomobileResource(*auto1)
-	// 		request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(422))
-	//
-	// 		// NOTE: cannot perform deep equal on errors array, so have to take an alternate approach
-	// 		responseBody1 := `{` +
-	// 			`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
-	// 			`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
-	// 		responseBody2 := `{` +
-	// 			`"errors":[{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}},` +
-	// 			`{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}}]}`
-	//
-	// 		Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
-	// 	})
-	// }) // Context "HTTP PATCH"
-	//
+		It("should return a 400 Status Code", func() {
+			MapErrorParam(server, errors.New("oops"))
+			MapSuccessParam(server, false)
+			BuildPatchRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(autoResource1)
+			request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(400))
+			responseBody := `{"errors":{"status":"400","detail":"oops"}}`
+			Ω(recorder.Body.String()).Should(Equal(responseBody))
+		})
+
+		It("should return a 422 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			MapSuccessParam(server, false)
+			BuildPatchRoute(server)
+
+			// prepare request
+			body := MarshalAutomobileResource(autoResource1)
+			request, _ = http.NewRequest("PATCH", "/v1/automobiles", bytes.NewReader(body))
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(422))
+
+			// NOTE: cannot perform deep equal on errors array, so have to take an alternate approach
+			responseBody1 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}},` +
+				`{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}}]}`
+			responseBody2 := `{` +
+				`"errors":[{"status":"422","detail":"cannot be greater than 2016","source":{"pointer":"data/attributes/year"}},` +
+				`{"status":"422","detail":"cannot be blank","source":{"pointer":"data/attributes/make"}}]}`
+
+			Ω([]string{responseBody1, responseBody2}).Should(ContainElement(recorder.Body.String()))
+		})
+	}) // Context "HTTP PATCH"
+
 	// Context("HTTP DELETE", func() {
 	// 	It("should return a 204 Status Code", func() {
 	// 		MapErrorParam(server, errors.New(""))

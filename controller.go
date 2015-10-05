@@ -80,7 +80,7 @@ func HandlePostResponse(jasi JSONApiServerInfo, success bool, err *JsonApiError,
 
 	if success {
 		// TODO: retrieve from the database instead of re-using instance
-		// r.Header().Set("Location", LinkSelfInstance(resource)) TODO: implement via Api2Go
+		// TODO: implement via Api2Go => r.Header().Set("Location", LinkSelfInstance(resource))
 		if j, jsonError = jsonapi.MarshalToJSONWithURLs(resource, jasi); jsonError != nil {
 			JSON(r, 400, map[string]interface{}{"errors": jsonError})
 		}
@@ -97,19 +97,29 @@ func HandlePostResponse(jasi JSONApiServerInfo, success bool, err *JsonApiError,
 }
 
 // HandlePatchResponse => formats appropriate JSON response based on success vs. error
-// func HandlePatchResponse(success bool, err *JsonApiError, resource JsonApiResourcer, r render.Render) {
-// 	if success {
-// 		// TODO: retrieve from the database instead of re-using instance
-// 		r.Header().Set("Location", LinkSelfInstance(resource))
-// 		JSON(r,200, map[string]interface{}{"data": resource}) // given that updated-at is set, a 200 w/ content must be returned
-// 	} else if err != nil {
-// 		// TODO: how do I parse the status code?
-// 		JSON(r,400, map[string]interface{}{"errors": err})
-// 		//JSON(r,412, map[string]interface{}{"errors": err})
-// 	} else {
-// 		JSON(r,422, map[string]interface{}{"errors": resource.Errors()})
-// 	}
-// }
+func HandlePatchResponse(jasi JSONApiServerInfo, success bool, err *JsonApiError, resource JsonApiResourcer, r render.Render) {
+	var j []byte
+	var jsonError error
+	var response interface{}
+
+	if success {
+		// TODO: retrieve from the database instead of re-using instance
+		// TODO: implement via Api2Go => r.Header().Set("Location", LinkSelfInstance(resource))
+		if j, jsonError = jsonapi.MarshalToJSONWithURLs(resource, jasi); jsonError != nil {
+			JSON(r, 400, map[string]interface{}{"errors": jsonError})
+		}
+		if jsonError = json.Unmarshal(j, &response); jsonError != nil {
+			JSON(r, 400, map[string]interface{}{"errors": jsonError})
+		}
+		JSON(r, 200, response) // given that updated-at is set, a 200 w/ content must be returned
+	} else if err != nil {
+		// TODO: how do I parse the status code?
+		JSON(r, 400, map[string]interface{}{"errors": err})
+		//JSON(r,412, map[string]interface{}{"errors": err})
+	} else {
+		JSON(r, 422, map[string]interface{}{"errors": resource.Errors()})
+	}
+}
 
 // HandlePatchResponse => formats appropriate JSON response based on success vs. error
 // NOTE: used by both the PUT and PATCH methods

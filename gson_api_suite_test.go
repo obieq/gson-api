@@ -51,12 +51,14 @@ type DriverModel struct {
 // ******************* BEGIN RESOURCE SECTION ************************* //
 
 // Automobile Resource
+// NOTE: in practice, all primitive types should use the null library b/c
+//       that's how we detect partial (PATCH) updates
 type AutomobileResource struct {
 	Resource    `jsonapi:"-"`
-	Year        int              `json:"year,omitempty" jsonapi:"name=year"`
-	Make        string           `json:"make,omitempty" jsonapi:"name=make"`
+	Year        null.Int         `json:"year,omitempty" jsonapi:"name=year"`
+	Make        null.String      `json:"make,omitempty" jsonapi:"name=make"`
 	BodyStyle   null.String      `json:"body-style,omitempty" jsonapi:"name=body-style"`
-	Active      bool             `json:"active,omitempty" jsonapi:"name=active"`
+	Active      null.Bool        `json:"active,omitempty" jsonapi:"name=active"`
 	Drivers     []DriverResource `json:"drivers,omitempty" jsonapi:"-"`
 	DriversIDs  []string         `json:"-" jsonapi:"-"`
 	Inspections []interface{}    `json:"inspections,omitempty" jsonapi:"name=inspections"`
@@ -135,9 +137,9 @@ func (r *AutomobileResource) MapFromModel(model interface{}) (err error) {
 
 	if !m.HasErrors() {
 		r.ID = m.ID
-		r.Year = m.Year
-		r.Make = m.Make
-		r.Active = m.Active
+		r.Year = null.IntFrom(int64(m.Year))
+		r.Make = null.StringFrom(m.Make)
+		r.Active = null.BoolFrom(m.Active)
 		r.Inspections = m.Inspections
 
 		// body style
@@ -169,15 +171,28 @@ func (r *AutomobileResource) MapFromModel(model interface{}) (err error) {
 func (r *AutomobileResource) MapToModel(model interface{}) (err error) {
 	m := model.(*AutomobileModel)
 
-	m.Year = r.Year
-	m.Make = r.Make
-	m.Active = r.Active
 	m.Inspections = r.Inspections
 
+	// year
+	if !r.Year.IsZero() {
+		m.Year = int(r.Year.Int64)
+	}
+
+	// make
+	if !r.Make.IsZero() {
+		m.Make = r.Make.String
+	}
+
 	// body style
+	// NOTE: model is a pointer, i.e., nullable
 	if !r.BodyStyle.IsZero() {
 		bs := r.BodyStyle.String
 		m.BodyStyle = &bs
+	}
+
+	// active
+	if !r.Active.IsZero() {
+		m.Active = r.Active.Bool
 	}
 
 	// ages
@@ -245,10 +260,10 @@ var _ = BeforeSuite(func() {
 	// AUTOMOBILES
 	gory.Define("automobileResource1", AutomobileResource{}, func(factory gory.Factory) {
 		factory["ID"] = "aaaa-1111-bbbb-2222"
-		factory["Year"] = 2010
-		factory["Make"] = "Mazda"
+		factory["Year"] = null.IntFrom(2010)
+		factory["Make"] = null.StringFrom("Mazda")
 		factory["BodyStyle"] = null.StringFrom("4 door sedan")
-		factory["Active"] = true
+		factory["Active"] = null.BoolFrom(true)
 
 		inspection1 := *gory.Build("inspectionResource1").(*InspectionResource)
 		inspection2 := *gory.Build("inspectionResource2").(*InspectionResource)
@@ -262,9 +277,9 @@ var _ = BeforeSuite(func() {
 
 	gory.Define("automobileResource2", AutomobileResource{}, func(factory gory.Factory) {
 		factory["ID"] = "cccc-3333-dddd-4444"
-		factory["Year"] = 1960
-		factory["Make"] = "Austin-Healey"
-		factory["Active"] = true
+		factory["Year"] = null.IntFrom(1960)
+		factory["Make"] = null.StringFrom("Austin-Healey")
+		factory["Active"] = null.BoolFrom(true)
 
 		inspection1 := *gory.Build("inspectionResource1").(*InspectionResource)
 		// factory["Inspections"] = []InspectionResource{inspection1}
@@ -273,12 +288,22 @@ var _ = BeforeSuite(func() {
 
 	gory.Define("automobileResource3", AutomobileResource{}, func(factory gory.Factory) {
 		factory["ID"] = "bbbb-2222-eeee-5555"
-		factory["Year"] = 1980
-		factory["Make"] = "Honda"
-		factory["Active"] = false
+		factory["Year"] = null.IntFrom(1980)
+		factory["Make"] = null.StringFrom("Honda")
+		factory["Active"] = null.BoolFrom(false)
 
 		driver1 := *gory.Build("driverResource1").(*DriverResource)
 		factory["Drivers"] = []DriverResource{driver1}
+	})
+
+	gory.Define("automobileModel1", AutomobileModel{}, func(factory gory.Factory) {
+		bs := "4 door sedan"
+
+		factory["ID"] = "automobile-model-1"
+		factory["Year"] = 1980
+		factory["Make"] = "Honda"
+		factory["BodyStyle"] = &bs
+		factory["Active"] = true
 	})
 })
 
