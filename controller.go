@@ -121,21 +121,6 @@ func HandlePatchResponse(jasi JSONApiServerInfo, success bool, err *JsonApiError
 	}
 }
 
-// HandlePatchResponse => formats appropriate JSON response based on success vs. error
-// NOTE: used by both the PUT and PATCH methods
-//func HandlePutPatchResponse(success bool, err error, resource JsonApiResourcer, r render.Render) {
-//if success {
-//// TODO: retrieve from the database instead of re-using instance
-//JSON(r,204, map[string]interface{}{})
-//} else if err != nil {
-//// TODO: how do I parse the status code?
-//JSON(r,400, map[string]interface{}{"errors": err})
-////JSON(r,412, map[string]interface{}{"errors": err})
-//} else {
-//JSON(r,422, map[string]interface{}{"errors": resource.Errors()})
-//}
-//}
-
 func HandleDeleteResponse(err *JsonApiError, r render.Render) {
 	if err == nil {
 		JSON(r, 204, map[string]interface{}{})

@@ -123,15 +123,15 @@ func HandlePatchAutomobile(args martini.Params, request *http.Request, r render.
 	HandlePatchResponse(TEST_SERVER_INFO, success, jsonApiError, &resource, r)
 }
 
-// func HandleDeleteAutomobile(r render.Render, err error) {
-// 	var jsonApiError *JsonApiError
-//
-// 	if err.Error() != "" {
-// 		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
-// 	}
-//
-// 	HandleDeleteResponse(jsonApiError, r)
-// }
+func HandleDeleteAutomobile(r render.Render, err error) {
+	var jsonApiError *JsonApiError
+
+	if err.Error() != "" {
+		jsonApiError = &JsonApiError{Status: "400", Detail: err.Error()}
+	}
+
+	HandleDeleteResponse(jsonApiError, r)
+}
 
 func MarshalAutomobileResource(auto AutomobileResource) []byte {
 	// Set up a new POST request before every test
@@ -158,23 +158,20 @@ func BuildGetSingleRoute(server *martini.ClassicMartini) {
 func BuildPostRoute(server *martini.ClassicMartini) {
 	server.Group("/v1", func(r martini.Router) {
 		r.Post("/automobiles", HandleCreateAutomobile)
-		// var i interface{}
-		// r.Post("/automobiles", binding.Json(&i), HandleCreateAutomobile)
 	})
 }
 
 func BuildPatchRoute(server *martini.ClassicMartini) {
 	server.Group("/v1", func(r martini.Router) {
 		r.Patch("/automobiles", HandlePatchAutomobile)
-		// r.Patch("/automobiles", binding.Json(JsonApiResource{}), HandlePatchAutomobile)
 	})
 }
 
-// func BuildDeleteRoute(server *martini.ClassicMartini) {
-// 	server.Group("/v1", func(r martini.Router) {
-// 		r.Delete("/automobiles/:id", HandleDeleteAutomobile)
-// 	})
-// }
+func BuildDeleteRoute(server *martini.ClassicMartini) {
+	server.Group("/v1", func(r martini.Router) {
+		r.Delete("/automobiles/:id", HandleDeleteAutomobile)
+	})
+}
 
 var _ = Describe("Controller", func() {
 	var (
@@ -439,36 +436,36 @@ var _ = Describe("Controller", func() {
 		})
 	}) // Context "HTTP PATCH"
 
-	// Context("HTTP DELETE", func() {
-	// 	It("should return a 204 Status Code", func() {
-	// 		MapErrorParam(server, errors.New(""))
-	// 		BuildDeleteRoute(server)
-	//
-	// 		request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(204))
-	// 		expectedResponse := `{}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
-	// 	})
-	//
-	// 	It("should return a 400 Status Code", func() {
-	// 		MapErrorParam(server, errors.New("oops"))
-	// 		BuildDeleteRoute(server)
-	//
-	// 		request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
-	//
-	// 		// send request to server
-	// 		server.ServeHTTP(recorder, request)
-	//
-	// 		// verify
-	// 		Ω(recorder.Code).Should(Equal(400))
-	// 		log.Println(recorder.Body.String())
-	// 		expectedResponse := `{"errors":{"status":"400","detail":"oops"}}`
-	// 		Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
-	// 	})
-	// }) // Context "HTTP DELETE"
+	Context("HTTP DELETE", func() {
+		It("should return a 204 Status Code", func() {
+			MapErrorParam(server, errors.New(""))
+			BuildDeleteRoute(server)
+
+			request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(204))
+			expectedResponse := `{}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+
+		It("should return a 400 Status Code", func() {
+			MapErrorParam(server, errors.New("oops"))
+			BuildDeleteRoute(server)
+
+			request, _ = http.NewRequest("DELETE", "/v1/automobiles/aaaa-1111-bbbb-2222", nil)
+
+			// send request to server
+			server.ServeHTTP(recorder, request)
+
+			// verify
+			Ω(recorder.Code).Should(Equal(400))
+			log.Println(recorder.Body.String())
+			expectedResponse := `{"errors":{"status":"400","detail":"oops"}}`
+			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
+		})
+	}) // Context "HTTP DELETE"
 })
