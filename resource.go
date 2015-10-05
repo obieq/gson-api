@@ -28,7 +28,7 @@ type Resourcer interface {
 	SetID(string) error
 	// BuildLinks()
 	MapToModel(model interface{}) error
-	MapFromModel(model interface{})
+	MapFromModel(model interface{}) error
 	Errors() []JsonApiError
 	SetErrors(map[string]*validations.ValidationError)
 	// Atts() interface{}

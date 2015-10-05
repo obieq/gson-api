@@ -5,6 +5,7 @@ import (
 
 	"github.com/manyminds/api2go/jsonapi"
 	"github.com/modocache/gory"
+	"github.com/obieq/gas"
 	validations "github.com/obieq/goar-validations"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -26,11 +27,13 @@ func TestGsonApi(t *testing.T) {
 // ******************* BEGIN MODEL SECTION **************************** //
 type AutomobileModel struct {
 	validations.Validation
-	ID        string  `json:"id"`
-	Year      int     `json:"year,omitempty"`
-	Make      string  `json:"make,omitempty"`
-	BodyStyle *string `json:"body-style,omitempty"`
-	Active    bool    `json:"active,omitempty"`
+	ID          string        `json:"id"`
+	Year        int           `json:"year,omitempty"`
+	Make        string        `json:"make,omitempty"`
+	BodyStyle   *string       `json:"body-style,omitempty"`
+	Active      bool          `json:"active,omitempty"`
+	Ages        []int         `json:"ages,omitempty"`
+	Inspections []interface{} `json:"inspections,omitempty"`
 }
 
 // ******************* END MODEL SECTION ****************************** //
@@ -40,14 +43,14 @@ type AutomobileModel struct {
 // Automobile Resource
 type AutomobileResource struct {
 	Resource    `jsonapi:"-"`
-	Year        int                  `json:"year,omitempty" jsonapi:"name=year"`
-	Make        string               `json:"make,omitempty" jsonapi:"name=make"`
-	BodyStyle   null.String          `json:"body-style,omitempty" jsonapi:"name=body-style"`
-	Active      bool                 `json:"active,omitempty" jsonapi:"name=active"`
-	Drivers     []DriverResource     `json:"drivers,omitempty" jsonapi:"-"`
-	DriversIDs  string               `json:"-" jsonapi:"-"`
-	Inspections []InspectionResource `json:"inspections,omitempty" jsonapi:"name=inspections"`
-	// Ages        []string             `json:"ages,omitempty"`
+	Year        int              `json:"year,omitempty" jsonapi:"name=year"`
+	Make        string           `json:"make,omitempty" jsonapi:"name=make"`
+	BodyStyle   null.String      `json:"body-style,omitempty" jsonapi:"name=body-style"`
+	Active      bool             `json:"active,omitempty" jsonapi:"name=active"`
+	Drivers     []DriverResource `json:"drivers,omitempty" jsonapi:"-"`
+	DriversIDs  string           `json:"-" jsonapi:"-"`
+	Inspections []interface{}    `json:"inspections,omitempty" jsonapi:"name=inspections"`
+	Ages        []interface{}    `json:"ages,omitempty" jsonapi:"name=ages"`
 }
 
 type InspectionResource struct {
@@ -101,7 +104,7 @@ func (r DriverResource) GetName() string {
 }
 
 // MapFromModel => maps a model to a resource
-func (r *AutomobileResource) MapFromModel(model interface{}) {
+func (r *AutomobileResource) MapFromModel(model interface{}) (err error) {
 	log.Println(model)
 	log.Println("obie")
 	m := model.(AutomobileModel)
@@ -114,14 +117,20 @@ func (r *AutomobileResource) MapFromModel(model interface{}) {
 		if m.BodyStyle != nil {
 			r.BodyStyle = null.StringFromPtr(m.BodyStyle)
 		}
+		var ints gas.Ints = m.Ages
+		if r.Ages, err = ints.ToInterfaces(); err != nil {
+			return err
+		}
+		r.Inspections = m.Inspections
 	} else {
 		r.SetErrors(m.ErrorMap())
 	}
+
+	return nil
 }
 
 // // MapToModel => maps a resource to a model
-func (r *AutomobileResource) MapToModel(model interface{}) error {
-	var err error
+func (r *AutomobileResource) MapToModel(model interface{}) (err error) {
 	m := model.(*AutomobileModel)
 
 	m.Year = r.Year
@@ -131,8 +140,13 @@ func (r *AutomobileResource) MapToModel(model interface{}) error {
 		bs := r.BodyStyle.String
 		m.BodyStyle = &bs
 	}
+	var interfaces gas.Interfaces = r.Ages
+	if m.Ages, err = interfaces.ToInts(); err != nil {
+		return err
+	}
+	m.Inspections = r.Inspections
 
-	return err
+	return nil
 }
 
 // // ******************* END RESOURCE SECTION *************************** //
@@ -196,7 +210,8 @@ var _ = BeforeSuite(func() {
 
 		inspection1 := *gory.Build("inspectionResource1").(*InspectionResource)
 		inspection2 := *gory.Build("inspectionResource2").(*InspectionResource)
-		factory["Inspections"] = []InspectionResource{inspection1, inspection2}
+		// factory["Inspections"] = []InspectionResource{inspection1, inspection2}
+		factory["Inspections"] = []interface{}{inspection1, inspection2}
 
 		driver1 := *gory.Build("driverResource1").(*DriverResource)
 		driver2 := *gory.Build("driverResource2").(*DriverResource)
@@ -210,7 +225,8 @@ var _ = BeforeSuite(func() {
 		factory["Active"] = true
 
 		inspection1 := *gory.Build("inspectionResource1").(*InspectionResource)
-		factory["Inspections"] = []InspectionResource{inspection1}
+		// factory["Inspections"] = []InspectionResource{inspection1}
+		factory["Inspections"] = []interface{}{inspection1}
 	})
 
 	gory.Define("automobileResource3", AutomobileResource{}, func(factory gory.Factory) {

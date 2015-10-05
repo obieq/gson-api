@@ -215,7 +215,7 @@ var _ = Describe("Controller", func() {
 			// verify
 			Ω(recorder.Code).Should(Equal(200))
 			// minified via http://www.webtoolkitonline.com/json-minifier.html
-			expectedResponse := `{"data":[{"attributes":{"active":true,"body-style":"4 door sedan","inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}],"make":"Mazda","year":2010},"id":"aaaa-1111-bbbb-2222","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"},{"id":"driver-id-2","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/drivers","self":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/relationships/drivers"}}},"type":"automobiles"},{"attributes":{"active":true,"body-style":null,"inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"}],"make":"Austin-Healey","year":1960},"id":"cccc-3333-dddd-4444","relationships":{"drivers":{"data":[],"links":{"related":"http://my.domain/v1/automobiles/cccc-3333-dddd-4444/drivers","self":"http://my.domain/v1/automobiles/cccc-3333-dddd-4444/relationships/drivers"}}},"type":"automobiles"},{"attributes":{"active":false,"body-style":null,"inspections":null,"make":"Honda","year":1980},"id":"bbbb-2222-eeee-5555","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/bbbb-2222-eeee-5555/drivers","self":"http://my.domain/v1/automobiles/bbbb-2222-eeee-5555/relationships/drivers"}}},"type":"automobiles"}],"included":[{"attributes":{"active":true,"age":40,"name":"paul walker"},"id":"driver-id-1","type":"drivers"},{"attributes":{"active":false,"age":45,"name":"steve mcqueen"},"id":"driver-id-2","type":"drivers"}]}`
+			expectedResponse := `{"data":[{"attributes":{"active":true,"ages":null,"body-style":"4 door sedan","inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}],"make":"Mazda","year":2010},"id":"aaaa-1111-bbbb-2222","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"},{"id":"driver-id-2","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/drivers","self":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/relationships/drivers"}}},"type":"automobiles"},{"attributes":{"active":true,"ages":null,"body-style":null,"inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"}],"make":"Austin-Healey","year":1960},"id":"cccc-3333-dddd-4444","relationships":{"drivers":{"data":[],"links":{"related":"http://my.domain/v1/automobiles/cccc-3333-dddd-4444/drivers","self":"http://my.domain/v1/automobiles/cccc-3333-dddd-4444/relationships/drivers"}}},"type":"automobiles"},{"attributes":{"active":false,"ages":null,"body-style":null,"inspections":null,"make":"Honda","year":1980},"id":"bbbb-2222-eeee-5555","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/bbbb-2222-eeee-5555/drivers","self":"http://my.domain/v1/automobiles/bbbb-2222-eeee-5555/relationships/drivers"}}},"type":"automobiles"}],"included":[{"attributes":{"active":true,"age":40,"name":"paul walker"},"id":"driver-id-1","type":"drivers"},{"attributes":{"active":false,"age":45,"name":"steve mcqueen"},"id":"driver-id-2","type":"drivers"}]}`
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
 
@@ -250,7 +250,7 @@ var _ = Describe("Controller", func() {
 			Ω(recorder.Code).Should(Equal(200))
 			Ω(recorder.Header().Get("Content-Type")).Should(Equal(EXPECTED_CONTENT_TYPE))
 			// minified via http://www.webtoolkitonline.com/json-minifier.html
-			expectedResponse := `{"data":{"attributes":{"active":true,"body-style":"4 door sedan","inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}],"make":"Mazda","year":2010},"id":"aaaa-1111-bbbb-2222","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"},{"id":"driver-id-2","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/drivers","self":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/relationships/drivers"}}},"type":"automobiles"},"included":[{"attributes":{"active":true,"age":40,"name":"paul walker"},"id":"driver-id-1","type":"drivers"},{"attributes":{"active":false,"age":45,"name":"steve mcqueen"},"id":"driver-id-2","type":"drivers"}]}`
+			expectedResponse := `{"data":{"attributes":{"active":true,"ages":null,"body-style":"4 door sedan","inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}],"make":"Mazda","year":2010},"id":"aaaa-1111-bbbb-2222","relationships":{"drivers":{"data":[{"id":"driver-id-1","type":"drivers"},{"id":"driver-id-2","type":"drivers"}],"links":{"related":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/drivers","self":"http://my.domain/v1/automobiles/aaaa-1111-bbbb-2222/relationships/drivers"}}},"type":"automobiles"},"included":[{"attributes":{"active":true,"age":40,"name":"paul walker"},"id":"driver-id-1","type":"drivers"},{"attributes":{"active":false,"age":45,"name":"steve mcqueen"},"id":"driver-id-2","type":"drivers"}]}`
 			Ω(recorder.Header().Get("Content-Type")).Should(Equal(EXPECTED_CONTENT_TYPE))
 			Ω(recorder.Body.String()).Should(MatchJSON(expectedResponse))
 		})
@@ -279,10 +279,8 @@ var _ = Describe("Controller", func() {
 
 			body := []byte(`{` +
 				`"data":{"type":"automobiles",` +
-				`"attributes":{"body-style":"4 door sedan","year":2010,"make":"Mazda","active":true}}}`)
-			// `"attributes":{"body-style":"4 door sedan","year":2010,"make":"Mazda","active":true,"inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"}]}}}`)
-			// `"attributes":{"body-style":"4 door sedan","year":2010,"make":"Mazda","active":true,"ages":["4","5"]}}}`)
-			// `"attributes":{"body-style":"4 door sedan","year":2010,"make":"Mazda","active":true,"ages":["4","5","6"]}}}`)
+				`"attributes":{"body-style":"4 door sedan","year":2010,"make":"Mazda","active":true,"ages":[4,6],` +
+				`"inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}]}}}`)
 
 			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
 
@@ -296,8 +294,21 @@ var _ = Describe("Controller", func() {
           "data": {
             "attributes": {
               "active": true,
+              "ages": [
+                4,
+                6
+              ],
               "body-style": "4 door sedan",
-              "inspections": null,
+              "inspections": [
+                {
+                  "location": "216 broad ave, richmond va 23226",
+                  "name": "inspection #1"
+                },
+                {
+                  "location": "2201 stoddard ct, arlington va 22202",
+                  "name": "inspection #2"
+                }
+              ],
               "make": "Mazda",
               "year": 2010
             },

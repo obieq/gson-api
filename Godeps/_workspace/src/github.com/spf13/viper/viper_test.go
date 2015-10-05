@@ -8,7 +8,10 @@ package viper
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -75,23 +78,23 @@ func initConfigs() {
 	Reset()
 	SetConfigType("yaml")
 	r := bytes.NewReader(yamlExample)
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 
 	SetConfigType("json")
 	r = bytes.NewReader(jsonExample)
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 
 	SetConfigType("properties")
 	r = bytes.NewReader(propertiesExample)
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 
 	SetConfigType("toml")
 	r = bytes.NewReader(tomlExample)
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 
 	SetConfigType("json")
 	remote := bytes.NewReader(remoteExample)
-	marshalReader(remote, v.kvstore)
+	unmarshalReader(remote, v.kvstore)
 }
 
 func initYAML() {
@@ -99,7 +102,7 @@ func initYAML() {
 	SetConfigType("yaml")
 	r := bytes.NewReader(yamlExample)
 
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 }
 
 func initJSON() {
@@ -107,7 +110,7 @@ func initJSON() {
 	SetConfigType("json")
 	r := bytes.NewReader(jsonExample)
 
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 }
 
 func initProperties() {
@@ -115,7 +118,7 @@ func initProperties() {
 	SetConfigType("properties")
 	r := bytes.NewReader(propertiesExample)
 
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 }
 
 func initTOML() {
@@ -123,7 +126,48 @@ func initTOML() {
 	SetConfigType("toml")
 	r := bytes.NewReader(tomlExample)
 
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
+}
+
+// make directories for testing
+func initDirs(t *testing.T) (string, string, func()) {
+
+	var (
+		testDirs = []string{`a a`, `b`, `c\c`, `D_`}
+		config   = `improbable`
+	)
+
+	root, err := ioutil.TempDir("", "")
+
+	cleanup := true
+	defer func() {
+		if cleanup {
+			os.Chdir("..")
+			os.RemoveAll(root)
+		}
+	}()
+
+	assert.Nil(t, err)
+
+	err = os.Chdir(root)
+	assert.Nil(t, err)
+
+	for _, dir := range testDirs {
+		err = os.Mkdir(dir, 0750)
+		assert.Nil(t, err)
+
+		err = ioutil.WriteFile(
+			path.Join(dir, config+".toml"),
+			[]byte("key = \"value is "+dir+"\"\n"),
+			0640)
+		assert.Nil(t, err)
+	}
+
+	cleanup = false
+	return root, config, func() {
+		os.Chdir("..")
+		os.RemoveAll(root)
+	}
 }
 
 //stubs for PFlag Values
@@ -157,11 +201,11 @@ func TestDefault(t *testing.T) {
 	assert.Equal(t, 45, Get("age"))
 }
 
-func TestMarshalling(t *testing.T) {
+func TestUnmarshalling(t *testing.T) {
 	SetConfigType("yaml")
 	r := bytes.NewReader(yamlExample)
 
-	marshalReader(r, v.config)
+	unmarshalReader(r, v.config)
 	assert.True(t, InConfig("name"))
 	assert.False(t, InConfig("state"))
 	assert.Equal(t, "steve", Get("name"))
@@ -222,7 +266,7 @@ func TestRemotePrecedence(t *testing.T) {
 
 	remote := bytes.NewReader(remoteExample)
 	assert.Equal(t, "0001", Get("id"))
-	marshalReader(remote, v.kvstore)
+	unmarshalReader(remote, v.kvstore)
 	assert.Equal(t, "0001", Get("id"))
 	assert.NotEqual(t, "cronut", Get("type"))
 	assert.Equal(t, "remote", Get("newkey"))
@@ -334,7 +378,7 @@ func TestRecursiveAliases(t *testing.T) {
 	RegisterAlias("Roo", "baz")
 }
 
-func TestMarshal(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	SetDefault("port", 1313)
 	Set("name", "Steve")
 
@@ -345,7 +389,7 @@ func TestMarshal(t *testing.T) {
 
 	var C config
 
-	err := Marshal(&C)
+	err := Unmarshal(&C)
 	if err != nil {
 		t.Fatalf("unable to decode into struct, %v", err)
 	}
@@ -353,7 +397,7 @@ func TestMarshal(t *testing.T) {
 	assert.Equal(t, &C, &config{Name: "Steve", Port: 1313})
 
 	Set("port", 1234)
-	err = Marshal(&C)
+	err = Unmarshal(&C)
 	if err != nil {
 		t.Fatalf("unable to decode into struct, %v", err)
 	}
@@ -556,4 +600,46 @@ func TestReadBufConfig(t *testing.T) {
 	assert.Equal(t, []interface{}{"skateboarding", "snowboarding", "go"}, v.Get("hobbies"))
 	assert.Equal(t, map[interface{}]interface{}{"jacket": "leather", "trousers": "denim", "pants": map[interface{}]interface{}{"size": "large"}}, v.Get("clothing"))
 	assert.Equal(t, 35, v.Get("age"))
+}
+
+func TestDirsSearch(t *testing.T) {
+
+	root, config, cleanup := initDirs(t)
+	defer cleanup()
+
+	v := New()
+	v.SetConfigName(config)
+	v.SetDefault(`key`, `default`)
+
+	entries, err := ioutil.ReadDir(root)
+	for _, e := range entries {
+		if e.IsDir() {
+			v.AddConfigPath(e.Name())
+		}
+	}
+
+	err = v.ReadInConfig()
+	assert.Nil(t, err)
+
+	assert.Equal(t, `value is `+path.Base(v.configPaths[0]), v.GetString(`key`))
+}
+
+func TestWrongDirsSearchNotFound(t *testing.T) {
+
+	_, config, cleanup := initDirs(t)
+	defer cleanup()
+
+	v := New()
+	v.SetConfigName(config)
+	v.SetDefault(`key`, `default`)
+
+	v.AddConfigPath(`whattayoutalkingbout`)
+	v.AddConfigPath(`thispathaintthere`)
+
+	err := v.ReadInConfig()
+	assert.Equal(t, reflect.TypeOf(UnsupportedConfigError("")), reflect.TypeOf(err))
+
+	// Even though config did not load and the error might have
+	// been ignored by the client, the default still loads
+	assert.Equal(t, `default`, v.GetString(`key`))
 }
