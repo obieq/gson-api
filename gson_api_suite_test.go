@@ -1,6 +1,7 @@
 package gsonapi
 
 import (
+	"errors"
 	"log"
 
 	"github.com/manyminds/api2go/jsonapi"
@@ -34,6 +35,15 @@ type AutomobileModel struct {
 	Active      bool          `json:"active,omitempty"`
 	Ages        []int         `json:"ages,omitempty"`
 	Inspections []interface{} `json:"inspections,omitempty"`
+	Drivers     []DriverModel `json:"drivers,omitempty"`
+}
+
+type DriverModel struct {
+	validations.Validation
+	ID     string `json:"id"`
+	Name   string `json:"name,omitempty"`
+	Age    int    `json:"age,omitempty"`
+	Active bool   `json:"active,omitempty"`
 }
 
 // ******************* END MODEL SECTION ****************************** //
@@ -48,7 +58,7 @@ type AutomobileResource struct {
 	BodyStyle   null.String      `json:"body-style,omitempty" jsonapi:"name=body-style"`
 	Active      bool             `json:"active,omitempty" jsonapi:"name=active"`
 	Drivers     []DriverResource `json:"drivers,omitempty" jsonapi:"-"`
-	DriversIDs  string           `json:"-" jsonapi:"-"`
+	DriversIDs  []string         `json:"-" jsonapi:"-"`
 	Inspections []interface{}    `json:"inspections,omitempty" jsonapi:"name=inspections"`
 	Ages        []interface{}    `json:"ages,omitempty" jsonapi:"name=ages"`
 }
@@ -61,9 +71,9 @@ type InspectionResource struct {
 // Driver Resource
 type DriverResource struct {
 	Resource `jsonapi:"-"`
-	Name     *string `json:"name,omitempty" jsonapi:"name=name"`
-	Age      *int    `json:"age,omitempty" jsonapi:"name=age"`
-	Active   *bool   `json:"active,omitempty" jsonapi:"name=active"`
+	Name     string `json:"name,omitempty" jsonapi:"name=name"`
+	Age      int    `json:"age,omitempty" jsonapi:"name=age"`
+	Active   bool   `json:"active,omitempty" jsonapi:"name=active"`
 }
 
 // GetReferences to satisfy the jsonapi.MarshalReferences interface
@@ -83,6 +93,20 @@ func (r AutomobileResource) GetReferencedIDs() []jsonapi.ReferenceID {
 	}
 
 	return result
+}
+
+// SetToManyReferenceIDs sets the sweets reference IDs and satisfies the jsonapi.UnmarshalToManyRelations interface
+func (r *AutomobileResource) SetToManyReferenceIDs(name string, IDs []string) error {
+	var err error
+
+	switch name {
+	case "drivers":
+		r.DriversIDs = IDs
+	default:
+		err = errors.New("There is no to-many relationship with the name " + name)
+	}
+
+	return err
 }
 
 func (r AutomobileResource) GetReferencedStructs() []jsonapi.MarshalIdentifier {
@@ -114,14 +138,26 @@ func (r *AutomobileResource) MapFromModel(model interface{}) (err error) {
 		r.Year = m.Year
 		r.Make = m.Make
 		r.Active = m.Active
+		r.Inspections = m.Inspections
+
+		// body style
 		if m.BodyStyle != nil {
 			r.BodyStyle = null.StringFromPtr(m.BodyStyle)
 		}
+
+		// ages
 		var ints gas.Ints = m.Ages
 		if r.Ages, err = ints.ToInterfaces(); err != nil {
 			return err
 		}
-		r.Inspections = m.Inspections
+
+		// drivers (a to-many relationship)
+		r.Drivers = make([]DriverResource, len(m.Drivers))
+		for i, model := range m.Drivers {
+			driverResource := DriverResource{Name: model.Name, Age: model.Age, Active: model.Active}
+			driverResource.SetID(model.ID)
+			r.Drivers[i] = driverResource
+		}
 	} else {
 		r.SetErrors(m.ErrorMap())
 	}
@@ -136,15 +172,29 @@ func (r *AutomobileResource) MapToModel(model interface{}) (err error) {
 	m.Year = r.Year
 	m.Make = r.Make
 	m.Active = r.Active
+	m.Inspections = r.Inspections
+
+	// body style
 	if !r.BodyStyle.IsZero() {
 		bs := r.BodyStyle.String
 		m.BodyStyle = &bs
 	}
+
+	// ages
 	var interfaces gas.Interfaces = r.Ages
 	if m.Ages, err = interfaces.ToInts(); err != nil {
 		return err
 	}
-	m.Inspections = r.Inspections
+
+	// drivers (a to-many relationship)
+	m.Drivers = make([]DriverModel, len(r.DriversIDs))
+	for i, id := range r.DriversIDs {
+		// here is where we would look up the corresponding model via db, cache, etc
+		dr := *gory.Build("driverResource" + id[len(id)-1:]).(*DriverResource)
+		driverModel := DriverModel{Name: dr.Name, Age: dr.Age, Active: dr.Active}
+		driverModel.ID = id
+		m.Drivers[i] = driverModel
+	}
 
 	return nil
 }
@@ -179,25 +229,17 @@ var _ = BeforeSuite(func() {
 
 	// DRIVERS
 	gory.Define("driverResource1", DriverResource{}, func(factory gory.Factory) {
-		n := "paul walker"
-		age := 40
-		a := true
-
 		factory["ID"] = "driver-id-1"
-		factory["Name"] = &n
-		factory["Age"] = &age
-		factory["Active"] = &a
+		factory["Name"] = "paul walker"
+		factory["Age"] = 40
+		factory["Active"] = true
 	})
 
 	gory.Define("driverResource2", DriverResource{}, func(factory gory.Factory) {
-		n := "steve mcqueen"
-		age := 45
-		a := false
-
 		factory["ID"] = "driver-id-2"
-		factory["Name"] = &n
-		factory["Age"] = &age
-		factory["Active"] = &a
+		factory["Name"] = "steve mcqueen"
+		factory["Age"] = 45
+		factory["Active"] = false
 	})
 
 	// AUTOMOBILES

@@ -280,7 +280,8 @@ var _ = Describe("Controller", func() {
 			body := []byte(`{` +
 				`"data":{"type":"automobiles",` +
 				`"attributes":{"body-style":"4 door sedan","year":2010,"make":"Mazda","active":true,"ages":[4,6],` +
-				`"inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}]}}}`)
+				`"inspections":[{"location":"216 broad ave, richmond va 23226","name":"inspection #1"},{"location":"2201 stoddard ct, arlington va 22202","name":"inspection #2"}]},` +
+				`"relationships":{"drivers":{"data":[{ "type": "drivers", "id": "driver-id-1" },{ "type": "drivers", "id": "driver-id-2" }]}}}}`)
 
 			request, _ = http.NewRequest("POST", "/v1/automobiles", bytes.NewReader(body))
 
@@ -315,7 +316,16 @@ var _ = Describe("Controller", func() {
             "id": "aaaa-bbbb-cccc-dddd",
             "relationships": {
               "drivers": {
-                "data": [],
+                "data": [
+                  {
+                    "id": "driver-id-1",
+                    "type": "drivers"
+                  },
+                  {
+                    "id": "driver-id-2",
+                    "type": "drivers"
+                  }
+                ],
                 "links": {
                   "related": "http://my.domain/v1/automobiles/aaaa-bbbb-cccc-dddd/drivers",
                   "self": "http://my.domain/v1/automobiles/aaaa-bbbb-cccc-dddd/relationships/drivers"
@@ -323,7 +333,27 @@ var _ = Describe("Controller", func() {
               }
             },
             "type": "automobiles"
-          }
+          },
+          "included": [
+            {
+              "attributes": {
+                "active": true,
+                "age": 40,
+                "name": "paul walker"
+              },
+              "id": "driver-id-1",
+              "type": "drivers"
+            },
+            {
+              "attributes": {
+                "active": false,
+                "age": 45,
+                "name": "steve mcqueen"
+              },
+              "id": "driver-id-2",
+              "type": "drivers"
+            }
+          ]
         }`
 			Ω(recorder.Body.String()).Should(MatchJSON(responseBody))
 		})
